@@ -619,8 +619,7 @@ class clusterThread (QThread):
                         self.telnetCluster.tableWidget.setItem(lastRow - 1, 1, QTableWidgetItem(cleanList[4]))
                         self.telnetCluster.tableWidget.setItem(lastRow - 1, 2, QTableWidgetItem(cleanList[1]+" "+cleanList[2]))
                     else:
-                        self.telnetCluster.tableWidget.setItem(lastRow - 1, 2,
-                                                               QTableWidgetItem(output_data))
+                        self.telnetCluster.tableWidget.setItem(lastRow - 1, 2, QTableWidgetItem(output_data.decode('utf-8')))
                     self.telnetCluster.tableWidget.resizeColumnsToContents()
                     self.telnetCluster.tableWidget.scrollToBottom()
                     #self.telnetCluster.tableWidget.setItem(0, 2, QTableWidgetItem(cleanList[5]))
