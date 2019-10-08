@@ -608,9 +608,9 @@ class clusterThread(QThread):
 
             if output_data != '':
                 # print(output_data[0:2])
-                if output_data[0:2].decode('utf-8') == "DX":
+                if output_data[0:2].decode(settingsDict['encodeStandart']) == "DX":
                     # print (output[0:2])
-                    splitString = output_data.decode('utf-8').split(' ')
+                    splitString = output_data.decode(settingsDict['encodeStandart']).split(' ')
                     count_chars = len(splitString)
                     for i in range(count_chars):
                         if splitString[i] != '':
@@ -621,7 +621,7 @@ class clusterThread(QThread):
                     self.telnetCluster.tableWidget.insertRow(lastRow)
 
                     self.telnetCluster.tableWidget.setItem(lastRow - 1, 0,
-                                                           QTableWidgetItem(output_data.decode('utf-8')))
+                                                           QTableWidgetItem(output_data.decode(settingsDict['encodeStandart'])))
 
                     self.telnetCluster.tableWidget.resizeColumnsToContents()
                     self.telnetCluster.tableWidget.resizeRowsToContents()
@@ -631,7 +631,7 @@ class clusterThread(QThread):
                     # print(cleanList[3])
                     print(output_data)
                 elif output_data[0:3] == "WWV":
-                    self.telnetCluster.labelIonosphereStat.setText("Ionosphere status: " + output_data.decode('utf-8'))
+                    self.telnetCluster.labelIonosphereStat.setText("Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
                     # self.telnetCluster.tableWidget.setItem(lastRow - 1, 0, TableWidgetItem("Ionosphere status: " + output_data.decode( 'utf-8' )))
                     print("Ionosphere status: ", output_data)
                 del cleanList[0:len(cleanList)]
@@ -656,7 +656,7 @@ class telnetCluster(QWidget):
 
         '''
 
-        self.setGeometry(100, 450, 300, 220)
+        self.setGeometry(100, 450, 340, 220)
         self.setWindowTitle('Telnet cluster')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
@@ -677,11 +677,11 @@ class telnetCluster(QWidget):
         # self.tableWidget.setSortingEnabled(True)
         self.tableWidget.setFont(fnt)
         self.tableWidget.setRowCount(1)
-        # self.tableWidget.verticalHeader(hide)
+        self.tableWidget.verticalHeader().setStyleSheet("width : 100%")
 
         self.tableWidget.setColumnCount(1)
         # self.tableWidget.resizeColumnsToContents
-        self.tableWidget.setHorizontalHeaderLabels(["---------------- spots -------------------"])
+        self.tableWidget.setHorizontalHeaderLabels(["---------------------spots--------------------"])
         #self.tableWidget.horizontalHeader().setSectionResizeMode( 0, 300)
             #.setStyleSheet("width : 100%; text-align : center;")
 
