@@ -18,7 +18,7 @@ from PyQt5.QtGui import QIcon, QFocusEvent
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QThread
-
+from time import gmtime, strftime, localtime
 from threading import Thread
 
 # from tel import telnet_cluster
@@ -240,6 +240,16 @@ class logSearch(QWidget):
 class Communicate(QObject):
     closeApp = pyqtSignal()
 
+class realTime(QThread):
+    def __init__(self, logformwindow, parent=None):
+        super().__init__()
+        self.logformwindow = logformwindow
+        # self.run()
+
+    def run(self):
+        while 1:
+            self.logformwindow.labelTime.setText ( strftime("%H:%M:%S", localtime()))
+
 
 class logForm(QMainWindow):
 
@@ -388,10 +398,12 @@ class logForm(QMainWindow):
         self.labelStatusTelnet = QLabel('Telnet')
         self.labelStatusTelnet.setFont(QtGui.QFont('SansSerif', 7))
 
-        self.labelTime = QLabel('22:39')
+        self.labelTime = QLabel()
         self.labelTime.setFont(QtGui.QFont('SansSerif', 7))
+        self.run_time = realTime(logformwindow=self)
+        self.run_time.start()
 
-        self.labelFreq = QLabel('7.100.123')
+        self.labelFreq = QLabel()
         self.labelFreq.setFont(QtGui.QFont('SansSerif', 7))
 
         self.labelMyCall = QLabel(settingsDict['my-call'])
@@ -619,22 +631,40 @@ class clusterThread(QThread):
                     print(cleanList)
                     lastRow = self.telnetCluster.tableWidget.rowCount()
                     self.telnetCluster.tableWidget.insertRow(lastRow)
+                    print (strftime("%H:%M:%S", gmtime()))
+                    self.telnetCluster.tableWidget.setItem(lastRow, 0,
+                                                           QTableWidgetItem(
+                                                               strftime("%H:%M:%S", localtime())))
+                    self.telnetCluster.tableWidget.setItem(lastRow, 1,
+                                                           QTableWidgetItem(
+                                                               strftime("%H:%M:%S", gmtime())))
+                    if(len(cleanList)>4):
 
-                    self.telnetCluster.tableWidget.setItem(lastRow - 1, 0,
+                        self.telnetCluster.tableWidget.setItem(lastRow, 2,
+                                                               QTableWidgetItem(cleanList[4]))
+
+                        self.telnetCluster.tableWidget.setItem(lastRow, 3,
+                                                               QTableWidgetItem(cleanList[3]))
+
+
+                    self.telnetCluster.tableWidget.resizeColumnsToContents()
+                    self.telnetCluster.tableWidget.setItem(lastRow, 4,
                                                            QTableWidgetItem(output_data.decode(settingsDict['encodeStandart'])))
 
                     self.telnetCluster.tableWidget.resizeColumnsToContents()
                     self.telnetCluster.tableWidget.resizeRowsToContents()
                     self.telnetCluster.tableWidget.scrollToBottom()
 
+
                     # self.telnetCluster.tableWidget.setItem(0, 2, QTableWidgetItem(cleanList[5]))
                     # print(cleanList[3])
                     print(output_data)
-                elif output_data[0:3] == "WWV":
+                elif output_data[0:3].decode(settingsDict['encodeStandart']) == "WWV":
                     self.telnetCluster.labelIonosphereStat.setText("Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
                     # self.telnetCluster.tableWidget.setItem(lastRow - 1, 0, TableWidgetItem("Ionosphere status: " + output_data.decode( 'utf-8' )))
-                    print("Ionosphere status: ", output_data)
+                    print("Ionosphere status: ", output_data.decode(settingsDict['encodeStandart']))
                 del cleanList[0:len(cleanList)]
+
 
 
 class telnetCluster(QWidget):
@@ -646,9 +676,12 @@ class telnetCluster(QWidget):
         self.host = settingsDict['telnet-host']
         self.port = settingsDict['telnet-port']
         self.call = settingsDict['my-call']
+        self.tableWidget = QTableWidget()
         self.allRows = 0
 
         self.initUI()
+
+
 
     def initUI(self):
         '''
@@ -656,7 +689,7 @@ class telnetCluster(QWidget):
 
         '''
 
-        self.setGeometry(100, 450, 340, 220)
+        self.setGeometry(100, 500, 500, 220)
         self.setWindowTitle('Telnet cluster')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
@@ -666,36 +699,33 @@ class telnetCluster(QWidget):
         # allCols = 3
         self.labelIonosphereStat = QLabel()
 
-        self.tableWidget = QTableWidget()
+
         #self.tableWidget.sizeColumns("100%")
         style = "QTableWidget{background:" + settingsDict['form-background'] + "; border: 0px solid, #000000 ; width " \
-                                                                               ": 100%; text-align: center; } "
+                                                                               ": 100%; text-align: center; align: center; font-size: 9 px; } "
+
         self.tableWidget.setStyleSheet(style)
-       # self.tableWidget.ColumnWidth(self.tableWidget.width())
+
+
         fnt = self.tableWidget.font()
-        fnt.setPointSize(8)
-        # self.tableWidget.setSortingEnabled(True)
+        fnt.setPointSize(9)
+
         self.tableWidget.setFont(fnt)
-        self.tableWidget.setRowCount(1)
-        self.tableWidget.verticalHeader().setStyleSheet("width : 100%")
-
-        self.tableWidget.setColumnCount(1)
-        # self.tableWidget.resizeColumnsToContents
-        self.tableWidget.setHorizontalHeaderLabels(["---------------------spots--------------------"])
-        #self.tableWidget.horizontalHeader().setSectionResizeMode( 0, 300)
-            #.setStyleSheet("width : 100%; text-align : center;")
+        self.tableWidget.setRowCount(0)
+        self.tableWidget.horizontalHeader().setStyleSheet("font: 12px; width:100%;")
+        self.tableWidget.setColumnCount(5)
+        self.tableWidget.setHorizontalHeaderLabels(["Time Loc", "Time GMT", "Call", "Freq", " Spot"])
 
 
-        # self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.resizeRowsToContents()
-        #self.tableWidget.verticalHeader().setDefaultSectionSize(500)
+        self.tableWidget.verticalHeader().hide()
+        self.tableWidget.cellClicked.connect(self.getFreq)
+
+
+
+
         self.tableWidget.resizeColumnsToContents()
         self.run_cluster = clusterThread(mainwindow=self)
         self.run_cluster.start()
-        # self.tableWidget.setItem(0, 0, QTableWidgetItem("test"))
-
-        #        self.tableWidget.setItem(row,col, QTableWidgetItem(self.allRecord[row][pole]))
-
         self.tableWidget.move(0, 0)
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.labelIonosphereStat)
@@ -704,6 +734,14 @@ class telnetCluster(QWidget):
 
         # logForm.test('test')
         self.show()
+
+    def getFreq(self):
+        row = self.tableWidget.currentItem().row()
+        item = self.tableWidget.item(row, 3).text()
+        logForm.labelFreq.setText(item)
+        print(item)
+
+
 
 
 if __name__ == '__main__':
