@@ -8,13 +8,15 @@ import re
 import os
 import datetime
 import telnetlib
+import internetworker
+
 # import pyautogui
 
 # import xdo  # $ pip install  python-libxdo
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QTableWidget, QTableWidgetItem, QTextEdit, \
     QLineEdit, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QComboBox
 from PyQt5.QtCore import pyqtSignal, QObject, QEvent
-from PyQt5.QtGui import QIcon, QFocusEvent
+from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QThread
@@ -46,27 +48,40 @@ print(settingsDict)
 
 
 class Filter(QObject):
+
+    previous_call=''
     def eventFilter(self, widget, event):
         # FocusOut event
+        #print(widget)
+
         if event.type() == QEvent.FocusOut:
-            # do custom stuff
-            text = logForm
-            textCall = text.inputCall.text()
-            foundList = self.searchInBase(textCall)
-            logSearch.overlap(foundList)
-            # print ('focus out')
-            return False
+                # do custom stuff
+                text = logForm
+                textCall = text.inputCall.text()
+                foundList = self.searchInBase(textCall)
+                logSearch.overlap(foundList)
+                if textCall != '' and textCall != Filter.previous_call:
+                    if settingsDict['search-internet-window'] == 'true':
+                        print("textCall", textCall)
+                        Filter.previous_call = textCall
+                        self.isearch = internetworker.internetWorker(window=internetSearch, callsign=textCall, settings=settingsDict)
+                        self.isearch.start()
+                    #print(img)
+
+
+                # print ('focus out')
+                return False
 
         if event.type() == QEvent.FocusIn:
-            # do custom stuff
-            logForm.inputRstS.setText('59')
-            logForm.inputRstR.setText('59')
-            # return False so that the widget will also handle the event
-            # otherwise it won't focus out
-            return False
+                # do custom stuff
+                logForm.inputRstS.setText('59')
+                logForm.inputRstR.setText('59')
+                # return False so that the widget will also handle the event
+                # otherwise it won't focus out
+                return False
         else:
-            # we don't care about other events
-            return False
+                # we don't care about other events
+                return False
 
     def searchInBase(self, call):
         # print (logWindow.allRecord)
@@ -92,8 +107,11 @@ class logWindow(QWidget):
 
     def initUI(self):
 
-        self.setGeometry(100, 50, 600, 220)
-        self.setWindowTitle('MiniLog | All QSO')
+        self.setGeometry(int(settingsDict['log-window-left']),
+                         int(settingsDict['log-window-top']),
+                         int(settingsDict['log-window-width']),
+                         int(settingsDict['log-window-height']))
+        self.setWindowTitle('LinLog | All QSO')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
@@ -195,8 +213,9 @@ class logSearch(QWidget):
 
     def initUI(self):
 
-        self.setGeometry(1000, 50, 600, 220)
-        self.setWindowTitle('MiniLog | Search')
+        self.setGeometry(int(settingsDict['log-search-window-left']), int(settingsDict['log-search-window-top']),
+                         int(settingsDict['log-search-window-width']), int(settingsDict['log-search-window-height']))
+        self.setWindowTitle('LinLog | Search')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
@@ -240,15 +259,17 @@ class logSearch(QWidget):
 class Communicate(QObject):
     closeApp = pyqtSignal()
 
+
 class realTime(QThread):
     def __init__(self, logformwindow, parent=None):
         super().__init__()
         self.logformwindow = logformwindow
-        # self.run()
+
 
     def run(self):
         while 1:
-            self.logformwindow.labelTime.setText ( strftime("%H:%M:%S", localtime()))
+            self.logformwindow.labelTime.setText("Loc: "+strftime("%H:%M:%S", localtime())+
+                                                 "  |  GMT: "+strftime("%H:%M:%S", gmtime()))
 
 
 class logForm(QMainWindow):
@@ -258,6 +279,7 @@ class logForm(QMainWindow):
         self.initUI()
 
     def menu(self):
+        '''
         logSettingsAction = QAction(QIcon('logo.png'), 'Log settings', self)
         logSettingsAction.setStatusTip('Name, Call and other of station')
         logSettingsAction.triggered.connect(self.logSettings)
@@ -319,15 +341,18 @@ class logForm(QMainWindow):
         helpMenu = menuBar.addMenu('Help')
         helpMenu.addAction(helpAction)
         helpMenu.addAction(aboutAction)
-
+        '''
+        pass
     def searchWindow(self):
 
         logSearch.hide()
 
     def initUI(self):
 
-        self.setGeometry(700, 50, 300, 220)
-        self.setWindowTitle('MiniLog | Form')
+        styleform = "background :" + settingsDict['form-background']
+        self.setGeometry(int(settingsDict['log-form-window-left']), int(settingsDict['log-form-window-top']),
+                         int(settingsDict['log-form-window-width']), int(settingsDict['log-form-window-height']))
+        self.setWindowTitle('LinLog | Form')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
@@ -340,7 +365,8 @@ class logForm(QMainWindow):
 
         # labelCall.move(40,40)
         self.inputCall = QLineEdit()
-
+        #self.inputCall.setFocusPolicy(Qt.StrongFocus)
+        self.inputCall.setStyleSheet(styleform)
         self.inputCall.setFixedWidth(108)
         self.inputCall.textChanged[str].connect(
             self.onChanged)  # событие изминения текста, привязываем в слот функцию onChanged
@@ -349,27 +375,29 @@ class logForm(QMainWindow):
         self.inputCall.installEventFilter(self._filter)
         self.inputCall.returnPressed.connect(
             self.logFormInput)  # событие нажатия Enter, привязываем в слот функцию logSettings
-
+        #self.inputCall.tabPressed.connect(self.internetWorker.get_internet_info)
         # inputCall.move(40,40)
         labelRstR = QLabel('RSTr')
         labelRstR.setFont(QtGui.QFont('SansSerif', 7))
+
         self.inputRstR = QLineEdit(self)
         self.inputRstR.setFixedWidth(30)
+        self.inputRstR.setStyleSheet(styleform)
         # style= "QLineEdit{ border: 1px solid #313142; border-radius: 50px; background: "+settingsDict['form-background']+"; font-weight: bold;}"
-        self.inputRstR.setStyleSheet(style)
+        #self.inputRstR.setStyleSheet(style)
         self.inputRstR.installEventFilter(self._filter)
 
         labelRstS = QLabel('RSTs')
         labelRstS.setFont(QtGui.QFont('SansSerif', 7))
         self.inputRstS = QLineEdit(self)
         self.inputRstS.setFixedWidth(30)
-        self.inputRstS.setStyleSheet(style)
+        self.inputRstS.setStyleSheet(styleform)
 
         labelName = QLabel('Name')
         labelName.setFont(QtGui.QFont('SansSerif', 9))
         self.inputName = QLineEdit(self)
         self.inputName.setFixedWidth(137)
-        self.inputName.setStyleSheet(style)
+        self.inputName.setStyleSheet(styleform)
         self.inputName.returnPressed.connect(self.logFormInput)
 
         labelQth = QLabel("QTH  ")
@@ -377,7 +405,7 @@ class logForm(QMainWindow):
 
         self.inputQth = QLineEdit(self)
         self.inputQth.setFixedWidth(137)
-        self.inputQth.setStyleSheet(style)
+        self.inputQth.setStyleSheet(styleform)
         self.inputQth.returnPressed.connect(self.logFormInput)
 
         self.comboMode = QComboBox(self)
@@ -400,8 +428,7 @@ class logForm(QMainWindow):
 
         self.labelTime = QLabel()
         self.labelTime.setFont(QtGui.QFont('SansSerif', 7))
-        self.run_time = realTime(logformwindow=self)
-        self.run_time.start()
+
 
         self.labelFreq = QLabel()
         self.labelFreq.setFont(QtGui.QFont('SansSerif', 7))
@@ -482,6 +509,10 @@ class logForm(QMainWindow):
         self.setCentralWidget(central_widget)
         self.show()
 
+        # run time in Thread
+        self.run_time = realTime(logformwindow=self) #run time in Thread
+        self.run_time.start()
+
     def rememberBand(self, text):
         with open('settings.cfg', 'r') as file:
             # read a list of lines into data
@@ -520,7 +551,7 @@ class logForm(QMainWindow):
                     file.writelines(data)
 
     def onChanged(self, text):
-
+        '''метод которій отрабатывает как только произошло изменение в поле ввода'''
         self.inputCall.setText(text.upper())
 
         if re.search('[А-Я]', text):
@@ -573,15 +604,108 @@ class logForm(QMainWindow):
             self.comments.clear()
 
     def closeEvent(self, event):
-        logWindow.close()
-        logSearch.close()
-        logForm.close()
-        telnetCluster.close()
+        '''
+        This function recieve signal close() from logSearch window
+        Save coordinate and size all window
+        Close app
+        '''
+        self.parameter={}
+        if settingsDict['log-window'] == 'true':
+            logWindow.close()
+            logWindow_geometry = logWindow.geometry()
+            self.parameter.update({'log-window-left': str(logWindow_geometry.left()),
+                              'log-window-top': str(logWindow_geometry.top()),
+                              'log-window-width': str(logWindow_geometry.width()),
+                              'log-window-height': str(logWindow_geometry.height())
+                              })
 
-        # генерация сигнала (события)
-        # self.c = Communicate()
-        # self.c.closeApp.connect(self.close)
-        # self.c.closeApp.emit()
+        if settingsDict['search-internet-window'] == 'true':
+            internetSearch.close()
+            internetSearch_geometry = internetSearch.geometry()
+            self.parameter.update({'search-internet-left': str(internetSearch_geometry.left()),
+                              'search-internet-top': str(internetSearch_geometry.top()),
+                              'search-internet-width': str(internetSearch_geometry.width()),
+                              'search-internet-height': str(internetSearch_geometry.height())
+                              })
+        if settingsDict['log-search-window'] == 'true':
+            logSearch.close()
+            logSearch_geometry = logSearch.geometry()
+            self.parameter.update({'log-search-window-left': str(logSearch_geometry.left()),
+                              'log-search-window-top': str(logSearch_geometry.top()),
+                              'log-search-window-width': str(logSearch_geometry.width()),
+                              'log-search-window-height': str(logSearch_geometry.height())
+                              })
+        if settingsDict['log-form-window'] == 'true':
+            logForm.close()
+            logForm_geometry = logForm.geometry()
+            self.parameter.update({'log-form-window-left': str(logForm_geometry.left()),
+                              'log-form-window-top': str(logForm_geometry.top()),
+                              'log-form-window-width': str(logForm_geometry.width()),
+                              'log-form-window-height': str(logForm_geometry.height())
+                              })
+        if settingsDict['telnet-cluster-window'] == 'true':
+            telnetCluster.close()
+            telnetCluster_geometry = telnetCluster.geometry()
+            self.parameter.update({'telnet-cluster-window-left': str(telnetCluster_geometry.left()),
+                              'telnet-cluster-window-top': str(telnetCluster_geometry.top()),
+                              'telnet-cluster-window-width': str(telnetCluster_geometry.width()),
+                              'telnet-cluster-window-height': str(telnetCluster_geometry.height())
+                              })
+        #print(parameter)
+        self.remember_in_cfg(self.parameter)
+
+
+    def remember_in_cfg (self, parameter):
+        '''
+        This function reciev Dictionary parametr with key:value
+        record key=value into config.cfg
+
+        :param parameter:
+        :return:
+        '''
+        filename='settings.cfg'
+        with open(filename,'r') as f:
+            old_data = f.readlines()
+        for line, string in enumerate(old_data):
+            print(line, string)
+            for key in parameter:
+                if key in string:
+                    string = key+"="+parameter[key]+"\n"
+                    old_data[line] = string
+        with open(filename, 'w') as f:
+            f.writelines(old_data)
+
+
+        '''   
+        for key in parameter:
+            new_data = old_data.replace(old_data.startswith(key), key+"="+parameter[key])
+        with open(filename,'w') as f:
+            f.write(new_data)
+       '''        '''
+        with open('settings.cfg', 'r') as file:
+            # read a list of lines into data
+            data = file.readlines()
+            print(data)
+        file.close()
+        string_lenght = len(data)
+        for i in range(string_lenght):
+            #string = data[i]
+            if data[i][0] != "#":
+
+                print(data[i].split('=')[0])
+
+                for key in parameter:
+
+                    if data[i].split('=')[0] == key:
+                        print(data[i].split('=')[1])
+                        #data[i].split('=')[1] = parameter[key]
+                        data[i] = key + '=' + parameter[key] + '\n'
+                    with open('settings.cfg', 'w') as file:
+                        file.writelines(data)
+                    file.close()
+
+
+        '''
 
     def empty(self):
         print('hi')
@@ -592,6 +716,7 @@ class logForm(QMainWindow):
 
     def test(data):
         pass
+
 
 
 class clusterThread(QThread):
@@ -631,40 +756,35 @@ class clusterThread(QThread):
                     print(cleanList)
                     lastRow = self.telnetCluster.tableWidget.rowCount()
                     self.telnetCluster.tableWidget.insertRow(lastRow)
-                    print (strftime("%H:%M:%S", gmtime()))
+                    #print(strftime("%H:%M:%S", gmtime()))
                     self.telnetCluster.tableWidget.setItem(lastRow, 0,
                                                            QTableWidgetItem(
                                                                strftime("%H:%M:%S", localtime())))
                     self.telnetCluster.tableWidget.setItem(lastRow, 1,
                                                            QTableWidgetItem(
                                                                strftime("%H:%M:%S", gmtime())))
-                    if(len(cleanList)>4):
-
+                    if (len(cleanList) > 4):
                         self.telnetCluster.tableWidget.setItem(lastRow, 2,
                                                                QTableWidgetItem(cleanList[4]))
 
                         self.telnetCluster.tableWidget.setItem(lastRow, 3,
                                                                QTableWidgetItem(cleanList[3]))
 
-
                     self.telnetCluster.tableWidget.resizeColumnsToContents()
                     self.telnetCluster.tableWidget.setItem(lastRow, 4,
-                                                           QTableWidgetItem(output_data.decode(settingsDict['encodeStandart'])))
+                                                           QTableWidgetItem(
+                                                               output_data.decode(settingsDict['encodeStandart'])))
 
                     self.telnetCluster.tableWidget.resizeColumnsToContents()
                     self.telnetCluster.tableWidget.resizeRowsToContents()
                     self.telnetCluster.tableWidget.scrollToBottom()
 
-
-                    # self.telnetCluster.tableWidget.setItem(0, 2, QTableWidgetItem(cleanList[5]))
-                    # print(cleanList[3])
                     print(output_data)
                 elif output_data[0:3].decode(settingsDict['encodeStandart']) == "WWV":
-                    self.telnetCluster.labelIonosphereStat.setText("Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
-                    # self.telnetCluster.tableWidget.setItem(lastRow - 1, 0, TableWidgetItem("Ionosphere status: " + output_data.decode( 'utf-8' )))
+                    self.telnetCluster.labelIonosphereStat.setText(
+                        "Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
                     print("Ionosphere status: ", output_data.decode(settingsDict['encodeStandart']))
                 del cleanList[0:len(cleanList)]
-
 
 
 class telnetCluster(QWidget):
@@ -681,51 +801,34 @@ class telnetCluster(QWidget):
 
         self.initUI()
 
-
-
     def initUI(self):
         '''
          Design of cluster window
 
         '''
 
-        self.setGeometry(100, 500, 500, 220)
+        self.setGeometry(int(settingsDict['telnet-cluster-window-left']), int(settingsDict['telnet-cluster-window-top']),
+                         int(settingsDict['telnet-cluster-window-width']), int(settingsDict['telnet-cluster-window-height']))
         self.setWindowTitle('Telnet cluster')
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
         self.setStyleSheet(style)
-
-        # allCols = 3
         self.labelIonosphereStat = QLabel()
-
-
-        #self.tableWidget.sizeColumns("100%")
+        self.labelIonosphereStat.setStyleSheet("font: 12px;")
         style = "QTableWidget{background:" + settingsDict['form-background'] + "; border: 0px solid, #000000 ; width " \
-                                                                               ": 100%; text-align: center; align: center; font-size: 9 px; } "
-
+                                                                               ": 100%;  font-size: 9 px; } "
         self.tableWidget.setStyleSheet(style)
-
-
         fnt = self.tableWidget.font()
         fnt.setPointSize(9)
-
         self.tableWidget.setFont(fnt)
         self.tableWidget.setRowCount(0)
         self.tableWidget.horizontalHeader().setStyleSheet("font: 12px; width:100%;")
         self.tableWidget.setColumnCount(5)
         self.tableWidget.setHorizontalHeaderLabels(["Time Loc", "Time GMT", "Call", "Freq", " Spot"])
-
-
         self.tableWidget.verticalHeader().hide()
         self.tableWidget.cellClicked.connect(self.getFreq)
-
-
-
-
         self.tableWidget.resizeColumnsToContents()
-        self.run_cluster = clusterThread(mainwindow=self)
-        self.run_cluster.start()
         self.tableWidget.move(0, 0)
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.labelIonosphereStat)
@@ -735,6 +838,9 @@ class telnetCluster(QWidget):
         # logForm.test('test')
         self.show()
 
+        self.run_cluster = clusterThread(mainwindow=self)
+        self.run_cluster.start()
+
     def getFreq(self):
         row = self.tableWidget.currentItem().row()
         item = self.tableWidget.item(row, 3).text()
@@ -742,12 +848,46 @@ class telnetCluster(QWidget):
         print(item)
 
 
+class internetSearch(QWidget):
 
+    def __init__(self):
+        super().__init__()
+        self.labelImage = QLabel(self)
+        #self.pixmap=""
+        self.initUI()
+
+    def initUI(self):
+        hbox = QHBoxLayout(self)
+        self.pixmap = QPixmap("logo.png")
+        #self.labelImage = QLabel(self)
+        self.labelImage.setPixmap(self.pixmap)
+        hbox.addWidget(self.labelImage)
+        self.setLayout(hbox)
+
+        #self.move(100, 200)
+        self.setGeometry(int(settingsDict['search-internet-left']),
+                         int(settingsDict['search-internet-top']),
+                         int(settingsDict['search-internet-width']),
+                         int(settingsDict['search-internet-height']))
+        self.setWindowTitle('Telnet cluster')
+        self.setWindowIcon(QIcon('logo.png'))
+        self.setWindowTitle('Image from internet')
+        self.show()
+
+    def update_photo(self):
+        pixmap = QPixmap("logo.png")
+        self.labelImage.setPixmap(pixmap)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    logWindow = logWindow()
-    logSearch = logSearch()
-    logForm = logForm()
-    telnetCluster = telnetCluster()
+    if settingsDict['log-window'] == 'true':
+        logWindow = logWindow()
+    if settingsDict['log-search-window'] == 'true':
+        logSearch = logSearch()
+    if settingsDict['log-form-window'] == 'true':
+        logForm = logForm()
+    if settingsDict['telnet-cluster-window'] == 'true':
+        telnetCluster = telnetCluster()
+    if settingsDict['search-internet-window'] == 'true':
+        internetSearch = internetSearch()
     sys.exit(app.exec_())
