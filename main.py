@@ -9,6 +9,7 @@ import os
 import datetime
 import telnetlib
 import internetworker
+import time
 
 # import pyautogui
 
@@ -17,22 +18,23 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QAction, QTableW
     QLineEdit, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QComboBox
 from PyQt5.QtCore import pyqtSignal, QObject, QEvent
 from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QThread
 from time import gmtime, strftime, localtime
-from threading import Thread
+
 
 # from tel import telnet_cluster
 
-if os.name == 'posix':
+'''if os.name == 'posix':
     from subprocess import check_output
 elif os.name == 'nt':
     import win32api, win32con, win32process
     from ctypes import windll
 
     user32 = windll.user32
-
+'''
+APP_VERSION = '0.1 Beta pre release'
 settingsDict = {}
 file = open('settings.cfg', "r")
 for configstring in file:
@@ -45,6 +47,62 @@ for configstring in file:
 
 file.close()
 print(settingsDict)
+
+class Adi_file:
+
+    def __init__(self):
+
+        self.filename = 'log.adi'
+
+    def get_header(self):
+
+        '''
+        This function returned string with cariage return
+        :return: string header with cariage return
+        '''
+
+        self.header_string="ADIF from LinLog Light v."+APP_VERSION+" \n"
+        self.header_string +="Copyright 2019-"+strftime("%Y", gmtime())+"  Baston V. Sergey\n"
+        self.header_string +="Header generated on "+strftime("%d/%m/%y %H:%M:%S", gmtime())+" by "+settingsDict['my-call']+"\n"
+        self.header_string +="File output restricted to QSOs by : All Operators - All Bands - All Modes \n"
+        self.header_string +="<PROGRAMID:6>LinLog\n"
+        self.header_string += "<PROGRAMVERSION:"+str(len(APP_VERSION))+">"+APP_VERSION+"\n"
+        self.header_string += "<EOH>\n\n"
+        return self.header_string
+
+    def get_all_qso(self):
+        try:
+            with  open(self.filename, 'r') as file:
+                lines = file.readlines()
+                print (lines)
+        except Exception:
+            print ("Adi_file: Exception. Don't open or read"+self.filename)
+
+    def record_all_qso (self, list_data):
+        '''
+        This function recieve List (list_data) with Dictionary with QSO-data
+        Dictionary including:
+        call
+        name
+        qth
+        rst_send
+        rst_reciev
+        band
+        mode
+        comment
+        :param list_data: List with Dictionary with QSO-data
+        :return:
+        '''
+        print(list_data[0]['call'])
+        #header = self.get_header()
+        #with open('aditest.adi', 'w') as file:
+          #  file.writelines(header)
+            #file.writelines(list_data)
+
+
+
+
+
 
 
 class Filter(QObject):
@@ -66,6 +124,12 @@ class Filter(QObject):
                         Filter.previous_call = textCall
                         self.isearch = internetworker.internetWorker(window=internetSearch, callsign=textCall, settings=settingsDict)
                         self.isearch.start()
+                if textCall == '' or textCall == ' ':
+                    pixmap = QPixmap('logo-big.png')
+                    #pixmap_resized = pixmap.scaled(int(settingsDict['image-width']),
+                                                 #  int(settingsDict['image-height']),
+                                                 #  QtCore.Qt.KeepAspectRatio)
+                    internetSearch.labelImage.setPixmap(pixmap)
                     #print(img)
 
 
@@ -267,9 +331,12 @@ class realTime(QThread):
 
 
     def run(self):
+
         while 1:
             self.logformwindow.labelTime.setText("Loc: "+strftime("%H:%M:%S", localtime())+
                                                  "  |  GMT: "+strftime("%H:%M:%S", gmtime()))
+            time.sleep(0.5)
+
 
 
 class logForm(QMainWindow):
@@ -432,6 +499,7 @@ class logForm(QMainWindow):
 
         self.labelFreq = QLabel()
         self.labelFreq.setFont(QtGui.QFont('SansSerif', 7))
+        self.labelFreq.setText('      ')
 
         self.labelMyCall = QLabel(settingsDict['my-call'])
         self.labelMyCall.setFont(QtGui.QFont('SansSerif', 10))
@@ -744,19 +812,18 @@ class clusterThread(QThread):
             output_data = telnetObj.read_some()
 
             if output_data != '':
-                # print(output_data[0:2])
                 if output_data[0:2].decode(settingsDict['encodeStandart']) == "DX":
-                    # print (output[0:2])
                     splitString = output_data.decode(settingsDict['encodeStandart']).split(' ')
                     count_chars = len(splitString)
                     for i in range(count_chars):
                         if splitString[i] != '':
                             cleanList.append(splitString[i])
                     # print(self.telnetCluster.tableWidget)
-                    print(cleanList)
+
+                    #print(cleanList) # Check point - output List with data from cluster telnet-server
+
                     lastRow = self.telnetCluster.tableWidget.rowCount()
                     self.telnetCluster.tableWidget.insertRow(lastRow)
-                    #print(strftime("%H:%M:%S", gmtime()))
                     self.telnetCluster.tableWidget.setItem(lastRow, 0,
                                                            QTableWidgetItem(
                                                                strftime("%H:%M:%S", localtime())))
@@ -779,7 +846,7 @@ class clusterThread(QThread):
                     self.telnetCluster.tableWidget.resizeRowsToContents()
                     self.telnetCluster.tableWidget.scrollToBottom()
 
-                    print(output_data)
+                    #print(output_data) # Check point - output input-string with data from cluster telnet-server
                 elif output_data[0:3].decode(settingsDict['encodeStandart']) == "WWV":
                     self.telnetCluster.labelIonosphereStat.setText(
                         "Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
@@ -859,7 +926,8 @@ class internetSearch(QWidget):
     def initUI(self):
         hbox = QHBoxLayout(self)
         self.pixmap = QPixmap("logo.png")
-        #self.labelImage = QLabel(self)
+        self.labelImage = QLabel(self)
+        self.labelImage.setAlignment(Qt.AlignCenter)
         self.labelImage.setPixmap(self.pixmap)
         hbox.addWidget(self.labelImage)
         self.setLayout(hbox)
@@ -890,4 +958,9 @@ if __name__ == '__main__':
         telnetCluster = telnetCluster()
     if settingsDict['search-internet-window'] == 'true':
         internetSearch = internetSearch()
+    #adi = Adi_file()
+    #Adi_file().get_all_qso()
+    list = [{'call':'URLGA' , 'name':'Sergey'}, 'blah2\n', 'blah3\n']
+
+    Adi_file().record_all_qso(list)
     sys.exit(app.exec_())
