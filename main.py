@@ -10,6 +10,7 @@ import datetime
 import telnetlib
 import internetworker
 import time
+import tci
 
 # import pyautogui
 
@@ -99,12 +100,6 @@ class Adi_file:
           #  file.writelines(header)
             #file.writelines(list_data)
 
-
-
-
-
-
-
 class Filter(QObject):
 
     previous_call=''
@@ -118,18 +113,26 @@ class Filter(QObject):
                 textCall = text.inputCall.text()
                 foundList = self.searchInBase(textCall)
                 logSearch.overlap(foundList)
+                freq = logForm.get_freq()
+                print("freq in Filter", freq)
                 if textCall != '' and textCall != Filter.previous_call:
                     if settingsDict['search-internet-window'] == 'true':
                         print("textCall", textCall)
                         Filter.previous_call = textCall
                         self.isearch = internetworker.internetWorker(window=internetSearch, callsign=textCall, settings=settingsDict)
                         self.isearch.start()
+                        if settingsDict['tci'] == 'enable':
+                            try:
+                                tci.Tci_sender(settingsDict['tci-server']+":"+settingsDict['tci-port']).set_spot(textCall, freq)
+                            except:
+                                print("Filter: Can't connect to TCI-server")
+
                 if textCall == '' or textCall == ' ':
                     pixmap = QPixmap('logo-big.png')
-                    #pixmap_resized = pixmap.scaled(int(settingsDict['image-width']),
-                                                 #  int(settingsDict['image-height']),
-                                                 #  QtCore.Qt.KeepAspectRatio)
-                    internetSearch.labelImage.setPixmap(pixmap)
+                    pixmap_resized = pixmap.scaled(int(settingsDict['image-width']),
+                                                   int(settingsDict['image-height']),
+                                                   QtCore.Qt.KeepAspectRatio)
+                    internetSearch.labelImage.setPixmap(pixmap_resized)
                     #print(img)
 
 
@@ -158,7 +161,6 @@ class Filter(QObject):
         return foundList
         # print (foundList)
         #
-
 
 class logWindow(QWidget):
 
@@ -268,7 +270,6 @@ class logWindow(QWidget):
             self.tableWidget.setItem(0, col, QTableWidgetItem(recordObject[self.allCollumn[col]]))
         # print (recordObject)
 
-
 class logSearch(QWidget):
     def __init__(self):
         super().__init__()
@@ -319,10 +320,8 @@ class logSearch(QWidget):
         self.foundList = foundList
         # print(self.foundList)
 
-
 class Communicate(QObject):
     closeApp = pyqtSignal()
-
 
 class realTime(QThread):
     def __init__(self, logformwindow, parent=None):
@@ -336,8 +335,6 @@ class realTime(QThread):
             self.logformwindow.labelTime.setText("Loc: "+strftime("%H:%M:%S", localtime())+
                                                  "  |  GMT: "+strftime("%H:%M:%S", gmtime()))
             time.sleep(0.5)
-
-
 
 class logForm(QMainWindow):
 
@@ -499,7 +496,7 @@ class logForm(QMainWindow):
 
         self.labelFreq = QLabel()
         self.labelFreq.setFont(QtGui.QFont('SansSerif', 7))
-        self.labelFreq.setText('      ')
+        self.labelFreq.setText('Feq: No TCI')
 
         self.labelMyCall = QLabel(settingsDict['my-call'])
         self.labelMyCall.setFont(QtGui.QFont('SansSerif', 10))
@@ -640,7 +637,7 @@ class logForm(QMainWindow):
         # print(call+ "this")
         if call != '':
             recordObject = {}
-            freq = str(self.labelFreq.text()).strip()
+            #freq = str(self.labelFreq.text()).strip()
 
             mode = str(self.comboMode.currentText()).strip()
             rstR = str(self.inputRstR.text()).strip()
@@ -652,6 +649,7 @@ class logForm(QMainWindow):
             comment = str(self.comments.toPlainText()).strip()
             comment = comment.replace("\r", " ")
             comment = comment.replace("\n", " ")
+            freq = self.get_freq()
 
             # print("'QSO_DATE':'20190703', 'TIME_ON':'124600', 'FREQ':"+freq+" 'CALL':"+cal+"'MODE'"+mode+" 'RST_RCVD':"+rstR+" 'RST_SENT':"+rstS+", 'NAME':"+name+", 'QTH':"+qth+"'OPERATOR':"+operator+"'BAND':"+band+"'COMMENT':"+comment)
 
@@ -664,6 +662,8 @@ class logForm(QMainWindow):
                             'BAND': band, 'COMMENTS': comment}
 
             logWindow.addRecord(recordObject)
+
+            tci.Tci_sender(settingsDict['tci-server'] + ":" + settingsDict['tci-port']).change_color_spot(call, freq)
             self.inputCall.clear()
             self.inputRstR.clear()
             self.inputRstS.clear()
@@ -721,7 +721,6 @@ class logForm(QMainWindow):
                               })
         #print(parameter)
         self.remember_in_cfg(self.parameter)
-
 
     def remember_in_cfg (self, parameter):
         '''
@@ -782,10 +781,49 @@ class logForm(QMainWindow):
         print('logSettings')
         # logSearch.close()
 
+    def set_freq(self, freq):
+        freq_string = str(freq)
+        freq_string = freq_string.replace('.', '')
+        len_freq=len(freq)
+        freq_to_label = freq[0:len_freq - 6] + "." + freq[len_freq - 6:len_freq - 3] + "." + freq[len_freq - 3:len_freq]
+        self.labelFreq.setText(str(freq_to_label))
+
+    def set_call(self, call):
+        self.inputCall.setText(str(call))
+
+    def set_freq_cluster(self, freq):
+        '''
+        This function set frequency to tci
+        :param freq:
+        :return:
+        '''
+        print(freq)
+        freq_string = str(freq)
+        freq_string = freq_string.replace('.', '')
+        if settingsDict['tci'] == 'enable':
+            try:
+                tci.Tci_sender(settingsDict['tci-server']+":"+settingsDict['tci-port']).set_freq(freq)
+            except:
+                print("Set_freq_cluster: Can't connection to server:", settingsDict['tci-server'], ":", settingsDict['tci-port'])
+        len_freq = len(freq)
+        freq_to_label = freq[0:len_freq-6]+"."+ freq[len_freq-6:len_freq - 3] + "." + freq[len_freq - 3:len_freq]
+        self.labelFreq.setText(str(freq_to_label))
+
+
+
+
+    def get_freq(self):
+        freq_string = self.labelFreq.text()
+        freq_string = freq_string.replace('.', '')
+        #if len(str(freq_string)) < 8 and len(str(freq_string)) >= 5:
+        #    freq_string = freq_string + "00"
+        #if len(str(freq_string)) < 5:
+         #   freq_string = freq_string + "000"
+
+        return freq_string
+
     def test(data):
         pass
-
-
 
 class clusterThread(QThread):
     def __init__(self, mainwindow, parent=None):
@@ -818,41 +856,46 @@ class clusterThread(QThread):
                     for i in range(count_chars):
                         if splitString[i] != '':
                             cleanList.append(splitString[i])
-                    # print(self.telnetCluster.tableWidget)
+                    if telnetCluster.cluster_filter(cleanList=cleanList):
+#####
+                        #print(cleanList) # Check point - output List with data from cluster telnet-server
 
-                    #print(cleanList) # Check point - output List with data from cluster telnet-server
+                        lastRow = self.telnetCluster.tableWidget.rowCount()
+                        self.telnetCluster.tableWidget.insertRow(lastRow)
+                        self.telnetCluster.tableWidget.setItem(lastRow, 0,
+                                                               QTableWidgetItem(
+                                                                   strftime("%H:%M:%S", localtime())))
+                        self.telnetCluster.tableWidget.setItem(lastRow, 1,
+                                                               QTableWidgetItem(
+                                                                   strftime("%H:%M:%S", gmtime())))
+                        if (len(cleanList) > 4):
+                            self.telnetCluster.tableWidget.setItem(lastRow, 2,
+                                                                   QTableWidgetItem(cleanList[4]))
 
-                    lastRow = self.telnetCluster.tableWidget.rowCount()
-                    self.telnetCluster.tableWidget.insertRow(lastRow)
-                    self.telnetCluster.tableWidget.setItem(lastRow, 0,
-                                                           QTableWidgetItem(
-                                                               strftime("%H:%M:%S", localtime())))
-                    self.telnetCluster.tableWidget.setItem(lastRow, 1,
-                                                           QTableWidgetItem(
-                                                               strftime("%H:%M:%S", gmtime())))
-                    if (len(cleanList) > 4):
-                        self.telnetCluster.tableWidget.setItem(lastRow, 2,
-                                                               QTableWidgetItem(cleanList[4]))
+                            self.telnetCluster.tableWidget.setItem(lastRow, 3,
+                                                                   QTableWidgetItem(cleanList[3]))
 
-                        self.telnetCluster.tableWidget.setItem(lastRow, 3,
-                                                               QTableWidgetItem(cleanList[3]))
+                        self.telnetCluster.tableWidget.resizeColumnsToContents()
+                        self.telnetCluster.tableWidget.setItem(lastRow, 4,
+                                                               QTableWidgetItem(
+                                                                   output_data.decode(settingsDict['encodeStandart'])))
 
-                    self.telnetCluster.tableWidget.resizeColumnsToContents()
-                    self.telnetCluster.tableWidget.setItem(lastRow, 4,
-                                                           QTableWidgetItem(
-                                                               output_data.decode(settingsDict['encodeStandart'])))
-
-                    self.telnetCluster.tableWidget.resizeColumnsToContents()
-                    self.telnetCluster.tableWidget.resizeRowsToContents()
-                    self.telnetCluster.tableWidget.scrollToBottom()
-
-                    #print(output_data) # Check point - output input-string with data from cluster telnet-server
+                        self.telnetCluster.tableWidget.resizeColumnsToContents()
+                        self.telnetCluster.tableWidget.resizeRowsToContents()
+                        self.telnetCluster.tableWidget.scrollToBottom()
+                        if settingsDict['spot-to-pan'] == 'enable':
+                            freq = telnetCluster.std_freq(freq=cleanList[3])
+                            try:
+                                tci.Tci_sender(settingsDict['tci-server']+":"+settingsDict['tci-port']).set_spot(cleanList[4], freq, color="19711680")
+                            except:
+                                print("clusterThread: Except in Tci_sender.set_spot")
+                    ####
+                # #print(output_data) # Check point - output input-string with data from cluster telnet-server
                 elif output_data[0:3].decode(settingsDict['encodeStandart']) == "WWV":
                     self.telnetCluster.labelIonosphereStat.setText(
                         "Ionosphere status: " + output_data.decode(settingsDict['encodeStandart']))
                     print("Ionosphere status: ", output_data.decode(settingsDict['encodeStandart']))
                 del cleanList[0:len(cleanList)]
-
 
 class telnetCluster(QWidget):
 
@@ -894,7 +937,7 @@ class telnetCluster(QWidget):
         self.tableWidget.setColumnCount(5)
         self.tableWidget.setHorizontalHeaderLabels(["Time Loc", "Time GMT", "Call", "Freq", " Spot"])
         self.tableWidget.verticalHeader().hide()
-        self.tableWidget.cellClicked.connect(self.getFreq)
+        self.tableWidget.cellClicked.connect(self.click_to_spot)
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.move(0, 0)
         self.layout = QVBoxLayout(self)
@@ -908,11 +951,116 @@ class telnetCluster(QWidget):
         self.run_cluster = clusterThread(mainwindow=self)
         self.run_cluster.start()
 
-    def getFreq(self):
+    def std_freq(self, freq):
+        freq = freq.replace('.', '')
+        len_freq = len(freq)
+        if len_freq < 8 and len_freq <= 5:
+            while len_freq < 7:
+                freq += "0"
+                len_freq = len(freq)
+            freq = "0" + freq
+        if len(freq) < 8 and len(freq) > 5 and len(freq) != 7:
+            while len_freq < 8:
+                freq += "0"
+                len_freq = len(freq)
+        return freq
+
+    def click_to_spot(self):
         row = self.tableWidget.currentItem().row()
-        item = self.tableWidget.item(row, 3).text()
-        logForm.labelFreq.setText(item)
-        print(item)
+        freq = self.tableWidget.item(row, 3).text()
+        call = self.tableWidget.item(row, 2).text()
+        freq = freq.replace('.', '')
+        len_freq = len(freq)
+        if len_freq < 8 and len_freq <= 5:
+            while len_freq < 7:
+                freq +="0"
+                len_freq=len(freq)
+            freq = "0"+freq
+        if len(freq) < 8 and len(freq) > 5 and len(freq) != 7:
+            while len_freq<8:
+                freq +="0"
+                len_freq=len(freq)
+
+
+        logForm.set_freq_cluster(freq)
+        logForm.set_call(call=call)
+        #logForm.labelFreq.setText(freq)
+        print(freq)
+
+    def get_std_band(self, freq):
+        print(freq)
+        band ="GEN"
+        if int(freq)>1800000 and int(freq)<2000000:
+            band = '160'
+        if int(freq)>3500000 and int(freq)<3800000:
+            band = '80'
+        if int(freq)>7000000 and int(freq)<7200000:
+            band = '40'
+        if int(freq)>10100000 and int(freq)<10150000:
+            band = '30'
+        if int(freq)>14000000 and int(freq)<14500000:
+            band = '20'
+        if int(freq)>18068000 and int(freq)<18168000:
+            band = '17'
+        if int(freq)>21000000 and int(freq)<21450000:
+            band = '15'
+        if int(freq)>24890000 and int(freq)<24990000:
+            band = '12'
+        if int(freq)>28000000 and int(freq)<29700000:
+            band = '10'
+        if int(freq)>28000000 and int(freq)<29700000:
+            band = '10'
+        if int(freq)>50000000 and int(freq)<54000000:
+            band = '6'
+        print("get_std_band: band", band)
+        return band
+
+    def cluster_filter(self, cleanList):
+        flag = False
+        if len(cleanList) > 3:
+            print("cluster_filter: inputlist", cleanList)
+            print("cluster_filter: call", cleanList[4])
+            print("cluster_filter: prefix", cleanList[4][0:2])
+            if settingsDict['cluster-filter'] == 'enable':
+                ### filtering by spot prefix
+                filter_by_band = False
+                filter_by_spotter_flag = False
+                filter_by_prefix_flag = False
+
+                if settingsDict['filter-by-prefix'] == 'enable':
+                    list_prefix_spot=settingsDict['filter-prefix'].split(',')
+                    if cleanList[4][0:2] in list_prefix_spot:
+                        filter_by_prefix_flag = True
+                else:
+                    filter_by_prefix_flag = True
+                ### filtering by prefix spotter
+                if settingsDict['filter-by-prefix-spotter'] == "enable":
+                    list_prefix_spotter=settingsDict['filter-prefix-spotter'].split(',')
+                    if cleanList[2][0:2] in list_prefix_spotter:
+                        filter_by_spotter_flag = True
+                else:
+                    filter_by_spotter_flag = True
+                ### filtering by band
+                if settingsDict['filter_by_band'] == "enable":
+                    list_prefix_spotter=settingsDict['list-by-band'].split(',')
+                    freq=self.std_freq(cleanList[3])
+                    band=self.get_std_band(freq)
+                    if band in list_prefix_spotter:
+                        filter_by_band = True
+                else:
+                    filter_by_band = True
+                print("cluster_filter: filter_by_prefix_flag:",filter_by_prefix_flag,
+                      "\nfilter_by_spotter_flag:",filter_by_spotter_flag,"\nfilter_by_band", filter_by_band)
+                if filter_by_prefix_flag and filter_by_spotter_flag and filter_by_band:
+                    flag = True
+                else:
+                    flag = False
+
+
+            else:
+                flag = True
+        return flag
+
 
 
 class internetSearch(QWidget):
@@ -958,6 +1106,11 @@ if __name__ == '__main__':
         telnetCluster = telnetCluster()
     if settingsDict['search-internet-window'] == 'true':
         internetSearch = internetSearch()
+    if settingsDict['tci'] == 'enable':
+
+           tci_reciever = tci.Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=logForm)
+           tci_reciever.start()
+
     #adi = Adi_file()
     #Adi_file().get_all_qso()
     list = [{'call':'URLGA' , 'name':'Sergey'}, 'blah2\n', 'blah3\n']
