@@ -3,9 +3,6 @@
 
 import websocket
 import time
-import main
-import sys
-#from main import logForm
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication
 
@@ -14,7 +11,7 @@ class Tci_reciever(QThread):
 
     def __init__(self, uri, log_form, parent=None):
         super().__init__()
-        self.uri=uri
+        self.uri = uri
         self.log_form = log_form
 
 
@@ -28,14 +25,15 @@ class Tci_reciever(QThread):
                 self.ws = websocket.WebSocket()
                 self.ws.connect(self.uri)
                 break
-                time.sleep(3)
+                #time.sleep(3)
             except:
+                print("Tci_reciever: Except connection")
                 time.sleep(2)
                 continue
         while 1:
             try:
                 reciever = self.ws.recv()
-                print(reciever)
+                #print(reciever)
                 tci_string=reciever.split(":")
                 if tci_string[0] == 'vfo':
                     values = tci_string[1].split(",")
@@ -43,16 +41,31 @@ class Tci_reciever(QThread):
 
                         self.log_form.set_freq(values[2].replace(';', ''))
 
-                        print("Частота:", values[2])
+
+                        #print("Частота:", values[2])
+                if tci_string[0] == 'protocol':
+                    values = tci_string[1].replace(',', ' ')
+                    values = values.replace(";", "")
+                    self.log_form.set_tci_stat('✔TCI: '+values)
+
+                if tci_string[0] == 'modulation':
+                     values = tci_string[1].split(",")
+                     if values[0] == '0':
+                         self.log_form.set_mode_tci(values[1].replace(';', ''))
+
+
+
                 time.sleep(0.002)
             except:
                 print("Tci_reciever: Exception in listen port loop")
+                self.log_form.set_tci_stat('')
                 try:
                     self.ws = websocket.WebSocket()
                     self.ws.connect(self.uri)
 
                 except:
                     time.sleep(2)
+                    self.log_form.set_tci_label_found()
                 #time.sleep(2)
                 continue
 
@@ -122,82 +135,5 @@ if __name__ == '__main__':
     tci.del_spot("UR4LG")
     sys.exit(app.exec_())
 
-# get_all()
 
-
-try:
-    import thread
-except ImportError:
-    import _thread as thread
-import time
-from PyQt5.QtCore import QThread
-
-class Tci (QThread):
-
-    def __init__(self):
-        websocket.enableTrace(True)
-        self.ws = websocket.WebSocketApp("ws://localhost:40001",
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close)
-        #self.on_message()
-        self.ws.on_open=self.on_send_tci_command
-        self.ws.run_forever()
-
-
-    def on_message(self, message):
-
-        #vfo:0,0,14175000;
-        print(message)
-
-        #list = self.ws.on_message.split(':')
-     #  if len(list) > 1:
-            #string[1].find(',') != -1:
-      #      string2 = list[1].split(',')
-      #      list[1] = string2
-        #print(list)
-
-    def on_error(ws, error):
-        print(error)
-
-    def on_close(ws):
-        print("### closed ###")
-
-    def on_send_tci_command(self, command_string='START;'):
-
-        #print('on_send_tci_command')
-        self.ws.send(command_string)
-        #self.ws.close()
-
-    def on_open(ws):
-        pass
-        #def run(*args):
-            #for i in range(3):
-             #   time.sleep(1)
-             #   ws.send("")
-            #time.sleep(1)
-           # ws.close()
-           # print("thread terminating...")
-        #thread.start_new_thread(run, ())
-
-
-
-
-
-        
-                                    #on_message=on_message,
-                                    #on_error=on_error,
-                                    #on_close=on_close
-        
-
-if __name__ == "__main__":
-    tci = Tci
-    #tci().on_message()
-    tci().on_send_tci_command("SS")
-
-    #ws.on_open = on_open
-    #ws.on_send_tci_command = on_send_tci_command()
-
-
-### ws://echo.websocket.org/
 '''

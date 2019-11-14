@@ -49,28 +49,32 @@ def getAllRecord(poles, filename):
     key = 0
     allrecord = []
     file = open(filename, 'r')
+    iterator_string_file = 0
+    iterator_records = 0
     for string in file:  # read string from file
 
         ## For example using string
         # string='<BAND:3>20M <CALL:6>DL1BCL <CONT:2>EU <CQZ:2>14 <DXCC:3>230 <FREQ:9>14.000000 <ITUZ:2>28 <MODE:3>SSB <OPERATOR:6>UR4LGA <PFX:3>DL1 <QSLMSG:19>TNX For QSO TU 73!. <QSO_DATE:8:D>20131011 <TIME_ON:6>184700 <RST_RCVD:2>57 <RST_SENT:2>57 <TIME_OFF:6>184700 <eQSL_QSL_RCVD:1>Y <APP_LOGGER32_QSO_NUMBER:1>1 <EOR>'
-
-        if key == 1 and string != '\n':  # checked key by ready parsing processing (1-ready) and cheked on empty string
-            tags = parseStringAdi(
-                string)  # calling function parse processing/ Function returning all tags from file in Python-Dictionary object
+        iterator_string_file += 1
+        if key == 1 and string != '\n':    # checked key by ready parsing processing (1-ready) and cheked on empty string
+            iterator_records += 1
+            tags = parseStringAdi(string)  # calling function parse processing/ Function returning all tags from file in Python-Dictionary object
+            tags.update({'string_in_file': str(iterator_string_file)})
+            tags.update({'records_number': str(iterator_records)})
             for i in range(len(poles)):
                 if poles[i] in tags.keys():  # chek all poles in dictionary
                     pass
                 else:
                     tags.update({poles[i]: ' '})
 
-            allrecord.append(
-                tags)  # add all dictionary in List-object. This List using for found input call in base of QSO (repeat qso)
+            allrecord.append(tags)  # add all dictionary in List-object. This List using for found input call in base of QSO (repeat qso)
 
         # print ('%10s %5s %10s %16s %4s %6s %5s %15s %15s' % (tags.get('QSO_DATE'), tags.get('TIME_ON'),tags.get('FREQ'),tags.get('CALL'),tags.get('MODE'), tags.get('RST_RCVD'),tags.get('RST_SENT'),tags.get('NAME'),tags.get('QTH')))
 
         if string == "<EOH>\n":  # if we went to end by text header in ADI file (<EOH>) - set key by ready parsing in value = 1
             key = 1
     # print (allrecord)
+    print(allrecord)
     return allrecord
 # call=''
 # rangevalue=len(allrecord) # How many QSO in base
