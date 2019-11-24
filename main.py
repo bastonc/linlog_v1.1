@@ -12,11 +12,12 @@ import internetworker
 import time
 import tci
 import std
+import settings
 
 # import pyautogui
 
 # import xdo  # $ pip install  python-libxdo
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QTableView, QTableWidget, QTableWidgetItem, QTextEdit, \
+from PyQt5.QtWidgets import QApplication, QAction, QWidget, QMainWindow, QTableView, QTableWidget, QTableWidgetItem, QTextEdit, \
     QLineEdit, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QComboBox
 from PyQt5.QtCore import pyqtSignal, QObject, QEvent
 from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap, QTextTableCell, QStandardItemModel
@@ -190,11 +191,11 @@ class Filter(QObject):
                                 print("Filter: Can't connect to TCI-server")
 
                 if textCall == '' or textCall == ' ':
-                    pixmap = QPixmap('logo-big.png')
-                    pixmap_resized = pixmap.scaled(int(settingsDict['image-width']),
-                                                   int(settingsDict['image-height']),
-                                                   QtCore.Qt.KeepAspectRatio)
-                    internetSearch.labelImage.setPixmap(pixmap_resized)
+                    pixmap = QPixmap('logo.png')
+                    #pixmap_resized = pixmap.scaled(int(settingsDict['image-width']),
+                                                  # int(settingsDict['image-height']),
+                                                  # QtCore.Qt.KeepAspectRatio)
+                    #internetSearch.labelImage.setPixmap(pixmap_resized)
                     #print(img)
 
 
@@ -310,6 +311,7 @@ class logWindow(QWidget):
                          int(settingsDict['log-window-height']))
         self.setWindowTitle('LinLog | All QSO')
         self.setWindowIcon(QIcon('logo.png'))
+        self.setWindowOpacity(float(settingsDict['logWindow-opacity']))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
         self.setStyleSheet(style)
@@ -320,8 +322,8 @@ class logWindow(QWidget):
         #			'MODE', 'RST_RCVD', 'RST_SENT',	'NAME', 'QTH')
         #		   )
         self.tableWidget = QTableWidget()
-        style_table=style = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
-            'color'] + ";}"
+        style_table = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
         self.tableWidget.setStyleSheet(style_table)
         fnt = self.tableWidget.font()
         fnt.setPointSize(8)
@@ -496,8 +498,9 @@ class logSearch(QWidget):
                          int(settingsDict['log-search-window-width']), int(settingsDict['log-search-window-height']))
         self.setWindowTitle('LinLog | Search')
         self.setWindowIcon(QIcon('logo.png'))
+        self.setWindowOpacity(float(settingsDict['logSearch-opacity']))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
-            'color'] + ";}"
+            'color'] + "; font: 12px;}"
         self.setStyleSheet(style)
 
         # print ('%10s %5s %10s %16s %8s %8s %8s %15s %15s' % ('QSO_DATE', 'TIME', 'FREQ', 'CALL',
@@ -505,10 +508,10 @@ class logSearch(QWidget):
         #		   )
         self.tableWidget = QTableWidget()
         style_table = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
-            'color'] + ";}"
+            'color'] + "; font: 12px}"
         self.tableWidget.setStyleSheet(style_table)
         fnt = self.tableWidget.font()
-        fnt.setPointSize(8)
+        fnt.setPointSize(9)
         self.tableWidget.setSortingEnabled(True)
         self.tableWidget.setFont(fnt)
 
@@ -521,8 +524,8 @@ class logSearch(QWidget):
         allRows = len(foundList)
         # print(foundList)
         self.tableWidget.setRowCount(allRows)
-        self.tableWidget.setColumnCount(9)
-        self.tableWidget.setHorizontalHeaderLabels(["   Date   ", " Time ", "Band", "   Call   ", "Mode", "RST r",
+        self.tableWidget.setColumnCount(10)
+        self.tableWidget.setHorizontalHeaderLabels(["No", "   Date   ", " Time ", "Band", "   Call   ", "Mode", "RST r",
                                                     "RST s", "      Name      ", "      QTH      "])
         self.tableWidget.resizeColumnsToContents()
         allCols = len(logWindow.allCollumn)
@@ -534,6 +537,7 @@ class logSearch(QWidget):
                 self.tableWidget.setItem(row, col, QTableWidgetItem(foundList[row][pole]))
 
         self.tableWidget.resizeRowsToContents()
+        self.tableWidget.resizeColumnsToContents()
         self.foundList = foundList
         # print(self.foundList)
 
@@ -560,11 +564,36 @@ class logForm(QMainWindow):
         self.initUI()
 
     def menu(self):
-        '''
-        logSettingsAction = QAction(QIcon('logo.png'), 'Log settings', self)
-        logSettingsAction.setStatusTip('Name, Call and other of station')
+
+        logSettingsAction = QAction('Settings', self)
+        #logSettingsAction.setStatusTip('Name, Call and other of station')
         logSettingsAction.triggered.connect(self.logSettings)
         #
+        window_cluster_action = QAction('Cluster', self)
+        #windowAction.setStatusTip('Name, Call and other of station')
+        window_cluster_action.triggered.connect(self.stat_cluster)
+        #
+        window_inet_search_action = QAction ('Internet search', self)
+        window_inet_search_action.triggered.connect(self.stat_internet_search)
+        #
+        window_repeat_qso_action = QAction ('Repeat QSO', self)
+        window_repeat_qso_action.triggered.connect(self.stat_repeat_qso)
+
+
+        menuBar = self.menuBar()
+        menuBar.setStyleSheet("QWidget{font: 12px;}")
+      #  settings_menu = menuBar.addMenu('Settings')
+        menuBar.addAction(logSettingsAction)
+        WindowMenu = menuBar.addMenu('&Window')
+        #WindowMenu.triggered.connect(self.logSettings)
+        WindowMenu.addAction(window_cluster_action)
+        WindowMenu.addAction(window_inet_search_action)
+        WindowMenu.addAction(window_repeat_qso_action)
+
+
+
+        #
+        '''
         catSettingsAction = QAction(QIcon('logo.png'), 'Cat settings', self)
         catSettingsAction.setStatusTip('Name, Call and other of station')
         catSettingsAction.triggered.connect(self.logSettings)
@@ -894,6 +923,26 @@ class logForm(QMainWindow):
             self.inputQth.clear()
             self.comments.clear()
 
+    def changeEvent(self, event):
+
+        if event.type() == QtCore.QEvent.WindowStateChange:
+            if self.isMinimized():
+                if settingsDict['search-internet-window'] == 'true':
+                    internetSearch.showMinimized()
+                if settingsDict['log-search-window'] == 'true':
+                    logSearch.showMinimized()
+                if settingsDict['log-window'] == 'true':
+                    logWindow.showMinimized()
+                if settingsDict['telnet-cluster-window'] == 'true':
+                    telnetCluster.showMinimized()
+            QWidget.changeEvent(self, event)
+    def showEvent(self, event):
+        print ("Show normal")
+       # internetSearch.showNormal()
+       # logSearch.showNormal()
+
+
+
     def closeEvent(self, event):
         '''
         This function recieve signal close() from logSearch window
@@ -973,7 +1022,37 @@ class logForm(QMainWindow):
 
     def logSettings(self):
         print('logSettings')
+        #menu_window.show()
+        self.menu = settings.Menu(settingsDict,
+                                  telnetCluster,
+                                  logForm,
+                                  logSearch,
+                                  logWindow,
+                                  internetSearch)
+        self.menu.show()
         # logSearch.close()
+
+    def stat_cluster(self):
+
+        if telnetCluster.isHidden():
+            print('statTelnet')
+            telnetCluster.show()
+        elif telnetCluster.isEnabled():
+            telnetCluster.hide()
+
+    def stat_internet_search(self):
+        if internetSearch.isHidden():
+            print('internet_search')
+            internetSearch.show()
+        elif internetSearch.isEnabled():
+            internetSearch.hide()
+
+    def stat_repeat_qso(self):
+        if logSearch.isHidden():
+            print('internet_search')
+            logSearch.show()
+        elif logSearch.isEnabled():
+            logSearch.hide()
 
     def set_band(self, band):
         #print("LogForm.set_band. input band:", band)
@@ -1068,6 +1147,25 @@ class logForm(QMainWindow):
          #   freq_string = freq_string + "000"
 
         return freq_string
+    ## updates methods
+
+    def refresh_interface(self):
+        self.labelMyCall.setText(settingsDict['my-call'])
+        self.update_color_schemes()
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
+            'color'] + ";}"
+        self.setStyleSheet(style)
+
+
+
+
+    def update_settings(self, new_settingsDict):
+        settingsDict.update(new_settingsDict)
+        #print(settingsDict['my-call'])
+
+
 
     def test(data):
         pass
@@ -1101,13 +1199,13 @@ class clusterThread(QThread):
         i = 0
         print('Starting Telnet cluster:', HOST, ':', PORT, '\nCall:', call, '\n\n')
         while 1:
-            try:
-                output_data = telnetObj.read_some()
-            except:
-                continue
+          try:
+            output_data = telnetObj.read_some()
+
 
             if output_data != '':
                     self.form_window.set_telnet_stat()
+                    #print (output_data)
                     if output_data[0:2].decode(settingsDict['encodeStandart']) == "DX":
                         splitString = output_data.decode(settingsDict['encodeStandart']).split(' ')
                         count_chars = len(splitString)
@@ -1129,10 +1227,10 @@ class clusterThread(QThread):
                                                                        strftime("%H:%M:%S", gmtime())))
                             if (len(cleanList) > 4):
                                 self.telnetCluster.tableWidget.setItem(lastRow, 2,
-                                                                       QTableWidgetItem(cleanList[4]))
+                                                                       QTableWidgetItem(cleanList[int(settingsDict['telnet-call-position'])]))
 
                                 self.telnetCluster.tableWidget.setItem(lastRow, 3,
-                                                                       QTableWidgetItem(cleanList[3]))
+                                                                       QTableWidgetItem(cleanList[int(settingsDict['telnet-freq-position'])]))
 
                             self.telnetCluster.tableWidget.resizeColumnsToContents()
                             self.telnetCluster.tableWidget.setItem(lastRow, 4,
@@ -1156,7 +1254,8 @@ class clusterThread(QThread):
                         #print("Ionosphere status: ", output_data.decode(settingsDict['encodeStandart']))
                     del cleanList[0:len(cleanList)]
                     time.sleep(0.3)
-
+          except:
+              continue
 class telnetCluster(QWidget):
 
     def __init__(self):
@@ -1181,13 +1280,14 @@ class telnetCluster(QWidget):
                          int(settingsDict['telnet-cluster-window-width']), int(settingsDict['telnet-cluster-window-height']))
         self.setWindowTitle('Telnet cluster')
         self.setWindowIcon(QIcon('logo.png'))
+        self.setWindowOpacity(float(settingsDict['clusterWindow-opacity']))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
         self.setStyleSheet(style)
         self.labelIonosphereStat = QLabel()
         self.labelIonosphereStat.setStyleSheet("font: 12px;")
-        style = "QTableWidget{background:" + settingsDict['form-background'] + "; border: 0px solid, #000000 ; width " \
-                                                                               ": 100%;  font-size: 9 px; } "
+        style = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
         self.tableWidget.setStyleSheet(style)
         fnt = self.tableWidget.font()
         fnt.setPointSize(9)
@@ -1199,7 +1299,7 @@ class telnetCluster(QWidget):
         self.tableWidget.verticalHeader().hide()
         self.tableWidget.cellClicked.connect(self.click_to_spot)
         self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.move(0, 0)
+        #self.tableWidget.move(0, 0)
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.labelIonosphereStat)
         self.layout.addWidget(self.tableWidget)
@@ -1207,9 +1307,17 @@ class telnetCluster(QWidget):
 
         # logForm.test('test')
         self.show()
+        self.start_cluster()
 
+
+    def stop_cluster(self):
+
+        print("stop_cluster:", self.run_cluster.terminate())
+
+    def start_cluster(self):
         self.run_cluster = clusterThread(cluster_window=self, form_window=logForm)
         self.run_cluster.start()
+
 
     def click_to_spot(self):
         row = self.tableWidget.currentItem().row()
@@ -1245,7 +1353,7 @@ class telnetCluster(QWidget):
 
     def cluster_filter(self, cleanList):
         flag = False
-        if len(cleanList) > 5:
+        if len(cleanList) >= 4:
             #print("cluster_filter: len(cleanList)", len(cleanList))
             #print("cluster_filter: inputlist", cleanList)
             #print("cluster_filter: call", cleanList[4])
@@ -1290,8 +1398,6 @@ class telnetCluster(QWidget):
                 flag = True
         return flag
 
-
-
 class internetSearch(QWidget):
 
     def __init__(self):
@@ -1317,6 +1423,7 @@ class internetSearch(QWidget):
         self.setWindowTitle('Telnet cluster')
         self.setWindowIcon(QIcon('logo.png'))
         self.setWindowTitle('Image from internet')
+        self.setWindowOpacity(float(settingsDict['searchInetWindow-opacity']))
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
         self.setStyleSheet(style)
@@ -1337,16 +1444,15 @@ if __name__ == '__main__':
         logForm = logForm()
     if settingsDict['telnet-cluster-window'] == 'true':
         telnetCluster = telnetCluster()
+
     if settingsDict['search-internet-window'] == 'true':
         internetSearch = internetSearch()
     if settingsDict['tci'] == 'enable':
+           tci_recv = tci.tci_connect(settingsDict, log_form=logForm)
+           tci_recv.start_tci()
+           #tci_reciever = tci.Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=logForm)
+           #tci_reciever.start()
 
-           tci_reciever = tci.Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=logForm)
-           tci_reciever.start()
-
-    #adi = Adi_file()
-    #Adi_file().get_all_qso()
-    list = [{'call':'URLGA' , 'name':'Sergey'}, 'blah2\n', 'blah3\n']
 
     Adi_file().record_all_qso(list)
     sys.exit(app.exec_())

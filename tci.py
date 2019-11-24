@@ -6,6 +6,19 @@ import time
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication
 
+class tci_connect:
+
+    def __init__(self, settingsDict, log_form, parent=None):
+        super().__init__()
+        self.settingsDict = settingsDict
+        self.log_form = log_form
+        self.tci_reciever = Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=self.log_form)
+
+    def start_tci(self):
+        self.tci_reciever.start()
+
+    def stop_tci(self):
+        self.tci_reciever.terminate()
 
 class Tci_reciever(QThread):
 
@@ -13,8 +26,6 @@ class Tci_reciever(QThread):
         super().__init__()
         self.uri = uri
         self.log_form = log_form
-
-
 
 
 
@@ -37,7 +48,7 @@ class Tci_reciever(QThread):
                 tci_string=reciever.split(":")
                 if tci_string[0] == 'vfo':
                     values = tci_string[1].split(",")
-                    if values[1]=='0' and values[0]=='0':
+                    if values[1]=='0' and values[0] == '0':
 
                         self.log_form.set_freq(values[2].replace(';', ''))
 
@@ -74,6 +85,7 @@ class Tci_sender (QApplication):
 
     def __init__(self, uri):
         try:
+
          self.ws = websocket.WebSocket()
          self.ws.connect(uri)
          self.ws.send("READY;")
@@ -81,10 +93,13 @@ class Tci_sender (QApplication):
             print("Can't connect to Tci_sender __init__:", uri)
 
 
+
+
     def send_command(self, string_command):
         self.ws.send(string_command)
 
     def set_freq(self, freq):
+        print ("set_freq:", freq)
         freq_string=str(freq)
         if len(str(freq))<8 and len(str(freq))>=5:
             freq_string=str(freq)+"00"
