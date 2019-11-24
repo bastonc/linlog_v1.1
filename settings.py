@@ -19,7 +19,7 @@ from time import gmtime, strftime, localtime
 
 class Menu (QWidget):
     def __init__(self, settingsDict, telnetCluster, logForm, logSearch,
-                 logWindow, internetSearch,  parent=None):
+                 logWindow, internetSearch, tci_class, parent=None):
         super(Menu, self).__init__(parent)
         self.settingsDict = settingsDict
         self.label_style = "font: 12px;"
@@ -30,6 +30,7 @@ class Menu (QWidget):
         self.logSearch = logSearch
         self.logWindow = logWindow
         self.internetSearch = internetSearch
+        self.tci_class = tci_class
 
 
     def initUI(self):
@@ -411,9 +412,13 @@ class Menu (QWidget):
 
         cluster_change_flag = self.store_new_settingsDict()   # save all lines from menu window \
                                                                 # to dictionary settingsDict
-        #main.tci_recv.stop_tci()
-        #main.tci_recv.start_tci()
+        self.tci_class.stop_tci()
+
+        self.tci_class.start_tci()
+
         self.logForm.update_settings(main.settingsDict)
+
+
 
         self.logForm.refresh_interface()
 

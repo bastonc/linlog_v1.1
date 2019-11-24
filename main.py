@@ -1028,7 +1028,8 @@ class logForm(QMainWindow):
                                   logForm,
                                   logSearch,
                                   logWindow,
-                                  internetSearch)
+                                  internetSearch,
+                                  tci_recv)
         self.menu.show()
         # logSearch.close()
 
