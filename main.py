@@ -65,7 +65,6 @@ class Adi_file:
     def get_last_string(self):
         return len(self.strings_in_file)
 
-
     def store_changed_qso(self, object):
         '''
         1. Function recived object in format (ch.1)
@@ -110,10 +109,6 @@ class Adi_file:
 
 
         #print("this:", self.strings_in_file[int(object['string_in_file'])-1])
-
-
-
-
 
     def get_header(self):
 
@@ -377,7 +372,6 @@ class logWindow(QWidget):
         tableWidgetItem.setFlags(flags)
         return tableWidgetItem
 
-
     def store_change_record(self):
 
             print("store_change_record")
@@ -419,6 +413,20 @@ class logWindow(QWidget):
             print("store_change_record: NEW Object", new_object)
             Adi_file().store_changed_qso(new_object)
             self.allRecord[int(record_number) - 1] = new_object
+
+    def refresh_interface(self):
+
+        self.update_color_schemes()
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + \
+                settingsDict['color'] + ";}"
+
+        style_form = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
+        self.tableWidget.setStyleSheet(style_form)
+
+        self.setStyleSheet(style)
 
 
 
@@ -541,14 +549,28 @@ class logSearch(QWidget):
         self.foundList = foundList
         # print(self.foundList)
 
+    def refresh_interface(self):
+
+        self.update_color_schemes()
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + \
+                settingsDict['color'] + ";}"
+
+        style_form = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
+        self.tableWidget.setStyleSheet(style_form)
+
+        self.setStyleSheet(style)
+
 class Communicate(QObject):
     closeApp = pyqtSignal()
 
 class realTime(QThread):
+
     def __init__(self, logformwindow, parent=None):
         super().__init__()
         self.logformwindow = logformwindow
-
 
     def run(self):
 
@@ -653,13 +675,14 @@ class logForm(QMainWindow):
         helpMenu.addAction(aboutAction)
         '''
         pass
+
     def searchWindow(self):
 
         logSearch.hide()
 
     def initUI(self):
 
-        styleform = "background :" + settingsDict['form-background']
+        styleform = "background :" + settingsDict['form-background']+"; font-weight: 200;"
         self.setGeometry(int(settingsDict['log-form-window-left']), int(settingsDict['log-form-window-top']),
                          int(settingsDict['log-form-window-width']), int(settingsDict['log-form-window-height']))
         self.setWindowTitle('LinLog | Form')
@@ -670,12 +693,12 @@ class logForm(QMainWindow):
         self.menu()
 
         # self.test()
-        labelCall = QLabel("Call")
-        labelCall.setFont(QtGui.QFont('SansSerif', 9))
+        self.labelCall = QLabel("Call")
+        self.labelCall.setFont(QtGui.QFont('SansSerif', 9))
 
         # labelCall.move(40,40)
         self.inputCall = QLineEdit()
-        #self.inputCall.setFocusPolicy(Qt.StrongFocus)
+        self.inputCall.setFocusPolicy(Qt.StrongFocus)
         self.inputCall.setStyleSheet(styleform)
         self.inputCall.setFixedWidth(108)
         self.inputCall.textChanged[str].connect(
@@ -687,29 +710,32 @@ class logForm(QMainWindow):
             self.logFormInput)  # событие нажатия Enter, привязываем в слот функцию logSettings
         #self.inputCall.tabPressed.connect(self.internetWorker.get_internet_info)
         # inputCall.move(40,40)
-        labelRstR = QLabel('RSTr')
-        labelRstR.setFont(QtGui.QFont('SansSerif', 7))
+        self.labelRstR = QLabel('RSTr')
+        self.labelRstR.setFont(QtGui.QFont('SansSerif', 7))
 
         self.inputRstR = QLineEdit(self)
         self.inputRstR.setFixedWidth(30)
         self.inputRstR.setStyleSheet(styleform)
+        self.inputRstR.returnPressed.connect(self.logFormInput)
+
         self.inputRstR.installEventFilter(self._filter)
 
-        labelRstS = QLabel('RSTs')
-        labelRstS.setFont(QtGui.QFont('SansSerif', 7))
+        self.labelRstS = QLabel('RSTs')
+        self.labelRstS.setFont(QtGui.QFont('SansSerif', 7))
         self.inputRstS = QLineEdit(self)
         self.inputRstS.setFixedWidth(30)
         self.inputRstS.setStyleSheet(styleform)
+        self.inputRstS.returnPressed.connect(self.logFormInput)
 
-        labelName = QLabel('Name')
-        labelName.setFont(QtGui.QFont('SansSerif', 9))
+        self.labelName = QLabel('Name')
+        self.labelName.setFont(QtGui.QFont('SansSerif', 9))
         self.inputName = QLineEdit(self)
         self.inputName.setFixedWidth(137)
         self.inputName.setStyleSheet(styleform)
         self.inputName.returnPressed.connect(self.logFormInput)
 
-        labelQth = QLabel("QTH  ")
-        labelQth.setFont(QtGui.QFont('SansSerif', 9))
+        self.labelQth = QLabel("QTH  ")
+        self.labelQth.setFont(QtGui.QFont('SansSerif', 9))
 
         self.inputQth = QLineEdit(self)
         self.inputQth.setFixedWidth(137)
@@ -717,21 +743,25 @@ class logForm(QMainWindow):
         self.inputQth.returnPressed.connect(self.logFormInput)
 
         self.comboMode = QComboBox(self)
+        self.comboMode.setFixedWidth(65)
         self.comboMode.addItems(["SSB", "ESSB", "CW", "AM", "FM", "DSB", "DIGI"])
         indexMode = self.comboMode.findText(settingsDict['mode'])
         self.comboMode.setCurrentIndex(indexMode)
         self.comboMode.activated[str].connect(self.rememberMode)
 
         self.comboBand = QComboBox(self)
+        self.comboBand.setFixedWidth(65)
         self.comboBand.addItems(["160", "80", "40", "30", "20", "17", "15", "12", "10", "6", "2", "100", "200"])
         indexBand = self.comboBand.findText(settingsDict['band'])
         self.comboBand.setCurrentIndex(indexBand)
         self.comboBand.activated[str].connect(self.rememberBand)
 
-        self.labelStatusCat = QLabel('')
+        self.labelStatusCat = QLabel('    ')
+        self.labelStatusCat.setAlignment(Qt.AlignLeft)
         self.labelStatusCat.setFont(QtGui.QFont('SansSerif', 7))
 
         self.labelStatusTelnet = QLabel('')
+        self.labelStatusTelnet.setAlignment(Qt.AlignLeft)
         self.labelStatusTelnet.setFont(QtGui.QFont('SansSerif', 7))
 
         self.labelTime = QLabel()
@@ -745,19 +775,24 @@ class logForm(QMainWindow):
         self.labelMyCall = QLabel(settingsDict['my-call'])
         self.labelMyCall.setFont(QtGui.QFont('SansSerif', 10))
         self.comments = QTextEdit()
+        self.comments.setFontPointSize(10)
+        self.comments.setFontWeight(3)
+        self.comments.setPlaceholderText("Comment")
+        self.comments.setFixedHeight(60)
 
         hBoxHeader = QHBoxLayout()
         hBoxHeader.addWidget(self.labelTime)
 
-        hBoxLeft = QHBoxLayout(self)
-        hBoxRight = QHBoxLayout(self)
+        #hBoxLeft = QHBoxLayout(self)
+        #hBoxRight = QHBoxLayout(self)
         hBoxRst = QHBoxLayout(self)
 
         vBoxLeft = QVBoxLayout(self)
+
         vBoxRight = QVBoxLayout(self)
         vBoxMain = QVBoxLayout(self)
         # Build header line
-        hBoxHeader.addWidget(self.labelTime)
+        hBoxHeader.addStretch(20)
         hBoxHeader.addWidget(self.labelFreq)
         hBoxHeader.addWidget(self.labelMyCall)
         # Build Left block
@@ -766,26 +801,27 @@ class logForm(QMainWindow):
         # set label Call
         # set input CALL
         hCall = QHBoxLayout(self)
-        hCall.addWidget(labelCall)
+        hCall.addWidget(self.labelCall)
         hCall.addWidget(self.inputCall)
         hCall.addStretch(1)
         vBoxLeft.addLayout(hCall)
 
-        hBoxRst.addWidget(labelRstR)  # set label RSTr
+        hBoxRst.addWidget(self.labelRstR)  # set label RSTr
         hBoxRst.addWidget(self.inputRstR)
-        hBoxRst.addWidget(labelRstS)  # set input RSTr
+        hBoxRst.addWidget(self.labelRstS)  # set input RSTr
         hBoxRst.addWidget(self.inputRstS)
         hBoxRst.addStretch(1)
 
         vBoxLeft.addLayout(hBoxRst)
         hName = QHBoxLayout(self)
-        hName.addWidget(labelName)
+
+        hName.addWidget(self.labelName)
         hName.addWidget(self.inputName)
         hName.addStretch(1)
         vBoxLeft.addLayout(hName)
 
         hQth = QHBoxLayout(self)
-        hQth.addWidget(labelQth)
+        hQth.addWidget(self.labelQth)
         hQth.addWidget(self.inputQth)
         hQth.addStretch(1)
         vBoxLeft.addLayout(hQth)
@@ -798,17 +834,26 @@ class logForm(QMainWindow):
         vBoxRight.addWidget(self.comboBand)
         vBoxRight.addWidget(self.comboMode)
         vBoxRight.addStretch(1)
-        vBoxRight.addWidget(self.labelStatusCat)
-        vBoxRight.addWidget(self.labelStatusTelnet)
+        #vBoxRight.addWidget(self.labelStatusCat)
+        #vBoxRight.addWidget(self.labelStatusTelnet)
 
         leftRight = QHBoxLayout()
+
         leftRight.addLayout(vBoxLeft)
         leftRight.addLayout(vBoxRight)
         # leftRight.setAlignment(Qt.AlignHCenter)
 
         vBoxMain.addLayout(hBoxHeader)
         vBoxMain.addLayout(leftRight)
+
+        hBoxStatus = QHBoxLayout()
+        hBoxStatus.setAlignment(Qt.AlignRight)
+        hBoxStatus.addWidget(self.labelStatusTelnet)
+        hBoxStatus.addWidget(self.labelStatusCat)
+
         vBoxMain.addWidget(self.comments)
+        vBoxMain.addLayout(hBoxStatus)
+
         style = "QTextEdit{background:" + settingsDict['form-background'] + "; border: 1px solid " + settingsDict[
             'solid-color'] + ";}"
         self.comments.setStyleSheet(style)
@@ -816,6 +861,7 @@ class logForm(QMainWindow):
         central_widget = QWidget()
         central_widget.setLayout(vBoxMain)
         self.setCentralWidget(central_widget)
+
         self.show()
 
         # run time in Thread
@@ -936,12 +982,9 @@ class logForm(QMainWindow):
                 if settingsDict['telnet-cluster-window'] == 'true':
                     telnetCluster.showMinimized()
             QWidget.changeEvent(self, event)
+
     def showEvent(self, event):
         print ("Show normal")
-       # internetSearch.showNormal()
-       # logSearch.showNormal()
-
-
 
     def closeEvent(self, event):
         '''
@@ -1002,6 +1045,7 @@ class logForm(QMainWindow):
         :param parameter:
         :return:
         '''
+        print(parameter)
         filename='settings.cfg'
         with open(filename,'r') as f:
             old_data = f.readlines()
@@ -1013,9 +1057,6 @@ class logForm(QMainWindow):
                     old_data[line] = string
         with open(filename, 'w') as f:
             f.writelines(old_data)
-
-
-
 
     def empty(self):
         print('hi')
@@ -1060,7 +1101,6 @@ class logForm(QMainWindow):
         indexMode = self.comboBand.findText(band)
         self.comboBand.setCurrentIndex(indexMode)
 
-
     def set_freq(self, freq):
         freq_string = str(freq)
         freq_string = freq_string.replace('.', '')
@@ -1071,7 +1111,6 @@ class logForm(QMainWindow):
         #print(band)
         indexMode = self.comboBand.findText(band)
         self.comboBand.setCurrentIndex(indexMode)
-
 
     def set_call(self, call):
         self.inputCall.setText(str(call))
@@ -1092,8 +1131,8 @@ class logForm(QMainWindow):
         indexMode = self.comboMode.findText(mode_string)
         self.comboMode.setCurrentIndex(indexMode)
 
-    def set_tci_stat(self, values):
-        self.labelStatusCat.setStyleSheet("color: #57BD79; font-weight: bold;")
+    def set_tci_stat(self, values , color="#57BD79"):
+        self.labelStatusCat.setStyleSheet("color: "+color+"; font-weight: bold;")
         self.labelStatusCat.setText(values)
 
     def set_tci_label_found(self, values=''):
@@ -1110,7 +1149,6 @@ class logForm(QMainWindow):
 
     def get_band(self):
         return self.comboBand.currentText()
-
 
     def get_freq(self):
         freq_string = self.labelFreq.text()
@@ -1155,9 +1193,31 @@ class logForm(QMainWindow):
         self.update_color_schemes()
 
     def update_color_schemes(self):
-        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
-            'color'] + ";}"
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + \
+                settingsDict['color'] + ";}"
+        self.labelCall.setStyleSheet(style)
+        self.labelRstR.setStyleSheet(style)
+        self.labelRstS.setStyleSheet(style)
+        self.labelName.setStyleSheet(style)
+        self.labelQth.setStyleSheet(style)
+        self.labelTime.setStyleSheet(style)
+        self.labelFreq.setStyleSheet(style)
+        self.labelMyCall.setStyleSheet(style)
+        self.comboMode.setStyleSheet(style)
+        self.comboBand.setStyleSheet(style)
+        self.labelStatusCat.setStyleSheet(style)
+        style_form = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
+        self.inputCall.setStyleSheet(style_form)
+        self.inputRstR.setStyleSheet(style_form)
+        self.inputRstS.setStyleSheet(style_form)
+        self.inputName.setStyleSheet(style_form)
+        self.inputQth.setStyleSheet(style_form)
+        self.comments.setStyleSheet(style_form)
+
+
         self.setStyleSheet(style)
+
 
 
 
@@ -1213,7 +1273,7 @@ class clusterThread(QThread):
                         for i in range(count_chars):
                             if splitString[i] != '':
                                 cleanList.append(splitString[i])
-                        print("clusterThread: clean list", cleanList)
+                        #print("clusterThread: clean list", cleanList)
                         if telnetCluster.cluster_filter(cleanList=cleanList):
     #####
                             #print(cleanList) # Check point - output List with data from cluster telnet-server
@@ -1257,6 +1317,7 @@ class clusterThread(QThread):
                     time.sleep(0.3)
           except:
               continue
+
 class telnetCluster(QWidget):
 
     def __init__(self):
@@ -1310,7 +1371,6 @@ class telnetCluster(QWidget):
         self.show()
         self.start_cluster()
 
-
     def stop_cluster(self):
 
         print("stop_cluster:", self.run_cluster.terminate())
@@ -1318,7 +1378,6 @@ class telnetCluster(QWidget):
     def start_cluster(self):
         self.run_cluster = clusterThread(cluster_window=self, form_window=logForm)
         self.run_cluster.start()
-
 
     def click_to_spot(self):
         row = self.tableWidget.currentItem().row()
@@ -1349,8 +1408,6 @@ class telnetCluster(QWidget):
                       settingsDict['tci-port'])
 
         #print("click_to_spot: freq:",freq) # Chek point
-
-
 
     def cluster_filter(self, cleanList):
         flag = False
@@ -1399,6 +1456,21 @@ class telnetCluster(QWidget):
                 flag = True
         return flag
 
+    def refresh_interface(self):
+
+        self.update_color_schemes()
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + \
+                settingsDict['color'] + ";}"
+        self.labelIonosphereStat.setStyleSheet(style)
+        style_form = "QWidget{background-color:" + settingsDict['form-background'] + "; color:" + settingsDict[
+            'color'] + "; font: 12px}"
+        self.tableWidget.setStyleSheet(style_form)
+
+        self.setStyleSheet(style)
+
+
 class internetSearch(QWidget):
 
     def __init__(self):
@@ -1434,6 +1506,16 @@ class internetSearch(QWidget):
         pixmap = QPixmap("logo.png")
         self.labelImage.setPixmap(pixmap)
 
+    def refresh_interface(self):
+        self.update_color_schemes()
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + \
+                settingsDict['color'] + ";}"
+        self.labelImage.setStyleSheet(style)
+        self.setStyleSheet(style)
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     if settingsDict['log-window'] == 'true':
@@ -1441,19 +1523,21 @@ if __name__ == '__main__':
             #Log_window() logWindow()
     if settingsDict['log-search-window'] == 'true':
         logSearch = logSearch()
-    if settingsDict['log-form-window'] == 'true':
-        logForm = logForm()
-    if settingsDict['telnet-cluster-window'] == 'true':
-        telnetCluster = telnetCluster()
 
     if settingsDict['search-internet-window'] == 'true':
         internetSearch = internetSearch()
+
+    if settingsDict['log-form-window'] == 'true':
+        logForm = logForm()
+        #logForm.setFocus()
     if settingsDict['tci'] == 'enable':
            tci_recv = tci.tci_connect(settingsDict, log_form=logForm)
-           tci_recv.start_tci()
+           tci_recv.start_tci(settingsDict["tci-server"], settingsDict["tci-port"])
+           #tci_recv.stop_tci()
            #tci_reciever = tci.Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=logForm)
            #tci_reciever.start()
-
+    if settingsDict['telnet-cluster-window'] == 'true':
+        telnetCluster = telnetCluster()
 
     Adi_file().record_all_qso(list)
     sys.exit(app.exec_())

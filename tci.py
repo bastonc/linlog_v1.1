@@ -12,14 +12,26 @@ class tci_connect:
         super().__init__()
         self.settingsDict = settingsDict
         self.log_form = log_form
-        self.tci_reciever = Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'],
+        self.settingsDisct = settingsDict
+
+
+
+    def start_tci(self, host, port):
+
+        self.tci_reciever = Tci_reciever(host + ":" + port,
                                          log_form=self.log_form)
 
-    def start_tci(self):
+        self.tci_reciever.set_flag("run")
         self.tci_reciever.start()
+        print(self.settingsDict['tci-server'],
+              self.settingsDict['tci-port'])
+        print("Tci start:", self.tci_reciever.currentThreadId())
 
     def stop_tci(self):
-        self.tci_reciever.terminate()
+        print ("Tci stop 1", self.tci_reciever.currentThreadId())
+        self.tci_reciever.set_flag("stop")
+        if self.tci_reciever.isFinished():
+            print("Tci stop 2", self.tci_reciever.currentThreadId())
         #self.log_form.set_tci_stat(' ')
 
 class Tci_reciever(QThread):
@@ -28,30 +40,39 @@ class Tci_reciever(QThread):
         super().__init__()
         self.uri = uri
         self.log_form = log_form
+        self.ws = websocket.WebSocket()
 
-
+    def set_flag(self, flag):
+        print("set_flag:", flag)
+        self.flag = flag
 
 
     def run(self):
-        while 1:
+
+        while self.flag == "run":
             try:
-                self.ws = websocket.WebSocket()
+
                 self.ws.connect(self.uri)
+                self.log_form.set_tci_stat('•TCI')
+
                 break
                 #time.sleep(3)
-            except:
+            except Exception:
                 #self.log_form.set_tci_label_found()
                 print("Tci_reciever: Except connection")
+                self.log_form.set_tci_stat('--', "#ff5555")
                 time.sleep(2)
+
                 continue
-        while 1:
+        while self.flag == "run":
             try:
+                #print("Connect to ")
                 reciever = self.ws.recv()
                 #print(reciever)
                 tci_string=reciever.split(":")
                 if tci_string[0] == 'vfo':
                     values = tci_string[1].split(",")
-                    if values[1]=='0' and values[0] == '0':
+                    if values[1] == '0' and values[0] == '0':
 
                         self.log_form.set_freq(values[2].replace(';', ''))
 
@@ -60,7 +81,7 @@ class Tci_reciever(QThread):
                 if tci_string[0] == 'protocol':
                     values = tci_string[1].replace(',', ' ')
                     values = values.replace(";", "")
-                    self.log_form.set_tci_stat('✔TCI: '+values)
+                    self.log_form.set_tci_stat('•TCI: '+ values)
 
                 if tci_string[0] == 'modulation':
                      values = tci_string[1].split(",")
@@ -72,30 +93,36 @@ class Tci_reciever(QThread):
                 time.sleep(0.002)
             except:
                 print("Tci_reciever: Exception in listen port loop")
-                #self.log_form.set_tci_stat('Check')
+                self.log_form.set_tci_stat(' ')
                 #self.log_form.set_tci_label_found()
                 try:
+                    self.ws.close()
                     self.ws = websocket.WebSocket()
                     self.ws.connect(self.uri)
+                    self.log_form.set_tci_stat("•TCI")
 
                 except:
                     time.sleep(2)
                     self.log_form.set_tci_label_found()
                 #time.sleep(2)
                 continue
+        else:
+            self.ws.close()
 
 
 class Tci_sender (QApplication):
 
     def __init__(self, uri):
         try:
-
+         self.uri = uri
          self.ws = websocket.WebSocket()
-         self.ws.connect(uri)
+         self.ws.connect(self.uri)
          self.ws.send("READY;")
+
         except:
             self.log_form.set_tci_stat('Check')
             print("Can't connect to Tci_sender __init__:", uri)
+
 
 
 
@@ -135,25 +162,3 @@ class Tci_sender (QApplication):
         string_command = "MODULATION:"+str(reciever)+","+str(mode)+";"
         self.ws.send(string_command)
 
-
-
-'''
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    tci_reciever = Tci_reciever("ws://localhost:40001")
-    tci_reciever.start()
-    tci = Tci_sender("ws://localhost:40001")
-    #tci.send_command("SPOT:UR4LGA,SSB,7110000,16711680, Good Modulation;")
-    tci.set_freq(7110000)
-
-    tci.set_spot("UR4LG", "7112000")
-    time.sleep(7)
-    tci.change_color_spot("UR4LG", 7112000)
-    time.sleep(7)
-    tci.set_mode(0, "lsb")
-    tci.del_spot("UR4LG")
-    sys.exit(app.exec_())
-
-
-'''

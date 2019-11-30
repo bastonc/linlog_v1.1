@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import QApplication, QAction, QWidget, QMainWindow, QTableV
 from PyQt5 import QtCore
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QAction, QWidget, QMainWindow, QTableView, QTableWidget, QTableWidgetItem, QTextEdit, \
-    QLineEdit, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QComboBox, QListView, QCheckBox
+    QLineEdit, QPushButton, QLabel, QColorDialog, QVBoxLayout, QHBoxLayout, QComboBox, QListView, QCheckBox
 from PyQt5.QtCore import pyqtSignal, QObject, QEvent
-from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap, QTextTableCell, QStandardItemModel
+from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap, QTextTableCell, QStandardItemModel, QPalette, QColor
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QThread
@@ -31,6 +31,7 @@ class Menu (QWidget):
         self.logWindow = logWindow
         self.internetSearch = internetSearch
         self.tci_class = tci_class
+        #print ("Menu init tci class:", self.tci_class.currentThreadId())
 
 
     def initUI(self):
@@ -60,29 +61,35 @@ class Menu (QWidget):
         self.call_input.setFixedWidth(100)
         self.call_input.setStyleSheet(formstyle)
 
+        self.dlg = QColorDialog(self)
         self.back_color_label = QLabel("Window color (Ex. #323232):")
         self.back_color_label.setStyleSheet(self.label_style)
-        self.back_color_input = QLineEdit()
+        self.back_color_input = QPushButton()
+        self.back_color_input.clicked.connect(self.back_color_select)
         self.back_color_input.setFixedWidth(70)
+        self.back_color_input.setStyleSheet("background:" + self.settingsDict['background-color'] + ";")
 
-
-        self.back_color_input.setStyleSheet(formstyle)
+        #self.back_color_input.setStyleSheet(formstyle)
         self.text_color_label = QLabel("Text color (Ex. #aaaaaa):")
         self.text_color_label.setStyleSheet(self.label_style)
-        self.text_color_input = QLineEdit()
+        self.text_color_input = QPushButton()
+        self.text_color_input.clicked.connect(self.text_color_select)
         self.text_color_input.setFixedWidth(70)
+        self.text_color_input.setStyleSheet("background:" + self.settingsDict['color'] + ";")
 
-        self.text_color_input.setStyleSheet(formstyle)
+        #self.text_color_input.setStyleSheet(formstyle)
         self.form_color_label = QLabel("Form color (Ex. #212121):")
         self.form_color_label.setStyleSheet(self.label_style)
-        self.form_color_input = QLineEdit()
+        self.form_color_input = QPushButton()
+        self.form_color_input.clicked.connect(self.form_color_select)
         self.form_color_input.setFixedWidth(70)
-        self.form_color_input.setStyleSheet(formstyle)
+        self.form_color_input.setStyleSheet("background:" + self.settingsDict['form-background'] + ";")
 
         # setup all elements to vertical lay
         self.general_tab.layout.addWidget(self.call_label)
         self.general_tab.layout.addWidget(self.call_input)
         self.general_tab.layout.addSpacing(20)
+
         self.general_tab.layout.addWidget(self.back_color_label)
         self.general_tab.layout.addWidget(self.back_color_input)
         self.general_tab.layout.addSpacing(20)
@@ -294,11 +301,13 @@ class Menu (QWidget):
         button_style = "font: 12px;"
         self.button_save = QPushButton("Save and Exit")
         self.button_save.setStyleSheet(button_style)
+        self.button_save.clicked.connect(self.save_and_exit_button)
         self.button_apply = QPushButton("Apply")
         self.button_apply.setStyleSheet(button_style)
         self.button_apply.clicked.connect(self.apply_button)
         self.button_cancel = QPushButton("Cancel")
         self.button_cancel.setStyleSheet(button_style)
+        self.button_cancel.clicked.connect(self.cancel_button)
         self.button_cancel.setFixedWidth(60)
         self.button_panel.addWidget(self.button_cancel)
         self.button_panel.addWidget(self.button_apply)
@@ -352,31 +361,65 @@ class Menu (QWidget):
 
         print("self.start_calibrate_cluster: Hello")
 
+    def refresh_interface(self):
+
+        self.update_color_schemes()
+
+    def text_color_select(self):
+        color = QColorDialog.getColor()
+
+        if color.isValid():
+            self.text_color_input.setText(color.name())
+            self.text_color_input.setStyleSheet("background:" + color.name() + ";")
+            self.text_color_input.autoFillBackground()
+
+    def form_color_select(self):
+        color = QColorDialog.getColor()
+
+        if color.isValid():
+            self.form_color_input.setText(color.name())
+            self.form_color_input.setStyleSheet("background:" + color.name() + ";")
+            self.form_color_input.autoFillBackground()
+
+    #self.back_color_input.clicked.connect(self.text_color_select)
+
+    def back_color_select(self):
+        #self.dlg.show()
+        color = QColorDialog.getColor()
+
+        if color.isValid():
+            self.back_color_input.setText(color.name())
+            self.back_color_input.setStyleSheet("background:"+color.name()+";")
+            self.back_color_input.autoFillBackground()
+
+
+
+    def update_color_schemes(self):
+        style = "QWidget{background-color:" + self.settingsDict['background-color'] + "; color:" + \
+                self.settingsDict['color'] + ";}"
+
+
+
+        self.setStyleSheet(style)
+
     def store_new_settingsDict(self):
         call = main.settingsDict['my-call']
-        main.settingsDict['my-call'] = self.call_input.text()
-        main.settingsDict['background-color'] = self.back_color_input.text()
-        main.settingsDict['color'] = self.text_color_input.text()
-        main.settingsDict['form-background'] = self.form_color_input.text()
-        main.settingsDict['telnet-host'] = self.cluster_host_input.text()
-        main.settingsDict['telnet-port'] = self.cluster_port_input.text()
-        main.settingsDict['list-by-band'] = self.cluster_filter_band_input.text()
-        main.settingsDict['filter-prefix'] = self.cluster_filter_spot_input.text()
-        main.settingsDict['filter-prefix-spotter'] = self.cluster_filter_spotter_input.text()
+        self.settingsDict['my-call'] = self.call_input.text()
+        self.settingsDict['background-color'] = self.back_color_input.text()
+        self.settingsDict['color'] = self.text_color_input.text()
+        self.settingsDict['form-background'] = self.form_color_input.text()
+        self.settingsDict['telnet-host'] = self.cluster_host_input.text()
+        self.settingsDict['telnet-port'] = self.cluster_port_input.text()
+        self.settingsDict['list-by-band'] = self.cluster_filter_band_input.text()
+        self.settingsDict['filter-prefix'] = self.cluster_filter_spot_input.text()
+        self.settingsDict['filter-prefix-spotter'] = self.cluster_filter_spotter_input.text()
         if self.cluster_combo_call.currentText() != '':
-            main.settingsDict['telnet-call-position'] = self.cluster_combo_call.currentText().split(":")[0]
+            self.settingsDict['telnet-call-position'] = self.cluster_combo_call.currentText().split(":")[0]
         if self.cluster_combo_freq.currentText() != '':
-            main.settingsDict['telnet-freq-position'] = self.cluster_combo_freq.currentText().split(":")[0]
+            self.settingsDict['telnet-freq-position'] = self.cluster_combo_freq.currentText().split(":")[0]
+        self.settingsDict['tci-server'] = "ws://"+self.tci_host_input.text().strip()
+        self.settingsDict['tci-port'] = self.tci_port_input.text().strip()
 
-
-        main.settingsDict['tci-server'] = "ws://"+self.tci_host_input.text().strip()
-        main.settingsDict['tci-port'] = self.tci_port_input.text().strip()
-
-
-        print ("store_new_settingsDict",
-               main.settingsDict['telnet-call-position'],
-               main.settingsDict['telnet-freq-position'], "\n",
-               main.settingsDict)
         cluster_change_flag = 0
         if self.cluster_filter_band_combo.isChecked():
             if main.settingsDict['filter_by_band'] != "enable":
@@ -412,22 +455,46 @@ class Menu (QWidget):
 
         cluster_change_flag = self.store_new_settingsDict()   # save all lines from menu window \
                                                                 # to dictionary settingsDict
+
         self.tci_class.stop_tci()
-
-        self.tci_class.start_tci()
-
-        self.logForm.update_settings(main.settingsDict)
-
-
-
+        self.tci_class.start_tci(self.settingsDict['tci-server'], self.settingsDict['tci-port'])
+        #self.logForm.update_settings(self.settingsDict)
         self.logForm.refresh_interface()
-
-        if  cluster_change_flag == 1:
+        #self.logSearch.update_settings(self.settingsDict)
+        self.logSearch.refresh_interface()
+        #self.logWindow.update_settings(self.settingsDict)
+        self.logWindow.refresh_interface()
+        #self.internetSearch.update_settings(self.settingsDict)
+        self.internetSearch.refresh_interface()
+        #self.telnetCluster.update_settings(self.settingsDict)
+        self.telnetCluster.refresh_interface()
+        self.refresh_interface()
+        if cluster_change_flag == 1:
             self.telnetCluster.stop_cluster()
             self.telnetCluster.start_cluster()
 
-        #print("Apply button in menu:", call, "New:", main.settingsDict['my-call'])
+    def save_and_exit_button(self):
 
+        cluster_change_flag = self.store_new_settingsDict()
+
+        filename = 'settings.cfg'
+        with open(filename, 'r') as f:
+            old_data = f.readlines()
+        for index, line in enumerate(old_data):
+            key_from_line = line.split('=')[0]
+            #print ("key_from_line:",key_from_line)
+            for key in self.settingsDict:
+
+                if key_from_line == key:
+                    #print("key",key , "line", line)
+                    old_data[index] = key+"="+self.settingsDict[key]+"\n"
+        with open(filename, 'w') as f:
+            f.writelines(old_data)
+        print ("Save_and_Exit_button: ", old_data)
+        Menu.close(self)
+
+    def cancel_button(self):
+        Menu.close(self)
 
 class cluster_in_Thread(QThread):
     def __init__(self, host, port, call, parent_window, parent=None):
@@ -466,8 +533,8 @@ class cluster_in_Thread(QThread):
 
             if output_data != '':
 
-                    if output_data[0:2].decode('UTF-8') == "DX":
-                        splitString = output_data.decode('UTF-8').split(' ')
+                    if output_data[0:2].decode(main.settingsDict['encodeStandart']) == "DX":
+                        splitString = output_data.decode(main.settingsDict['encodeStandart']).split(' ')
                         count_chars = len(splitString)
                         for i in range(count_chars):
                             if splitString[i] != '':
