@@ -15,30 +15,33 @@ def parseStringAdi(string):
     tags = {}
     counterChar = 0
     for i in string:
-        counter = counter + 1;
-        if i == '<':
-            counterChar = counter
-            while string[counterChar] != ':':
-                name = name + string[counterChar]
-                if name == 'EOR':
-                    break
-                counterChar = counterChar + 1
-            if string[counterChar] == ':':
-                counterChar = counterChar + 1
-                while string[counterChar] != '>':
-                    digitInTagString = digitInTagString + string[counterChar]
+        try:
+            counter = counter + 1;
+            if i == '<':
+                counterChar = counter
+                while string[counterChar] != ':':
+                    name = name + string[counterChar]
+                    if name == 'EOR':
+                        break
                     counterChar = counterChar + 1
-            # digitInTagDigit=int(digitInTagString)
-            while string[counterChar] != '<':
-                if string[counterChar] != ">":
-                    inTag = inTag + string[counterChar]
-                if counterChar == len(string) - 1:
-                    break
-                else:
+                if string[counterChar] == ':':
                     counterChar = counterChar + 1
-            tags.update({name: inTag})
-            name = ''
-            inTag = ''
+                    while string[counterChar] != '>':
+                        digitInTagString = digitInTagString + string[counterChar]
+                        counterChar = counterChar + 1
+                # digitInTagDigit=int(digitInTagString)
+                while string[counterChar] != '<':
+                    if string[counterChar] != ">":
+                        inTag = inTag + string[counterChar]
+                    if counterChar == len(string) - 1:
+                        break
+                    else:
+                        counterChar = counterChar + 1
+                tags.update({name: inTag})
+                name = ''
+                inTag = ''
+        except Exception:
+            print("Exception in parse")
     return tags
 
 
@@ -48,7 +51,7 @@ def getAllRecord(poles, filename):
 
     key = 0
     allrecord = []
-    file = open(filename, 'r')
+    file = open(filename, 'r', encoding="utf-8")
     iterator_string_file = 0
     iterator_records = 0
     for string in file:  # read string from file
@@ -59,22 +62,25 @@ def getAllRecord(poles, filename):
         if key == 1 and string != '\n':    # checked key by ready parsing processing (1-ready) and cheked on empty string
             iterator_records += 1
             tags = parseStringAdi(string)  # calling function parse processing/ Function returning all tags from file in Python-Dictionary object
-            tags.update({'string_in_file': str(iterator_string_file)})
-            tags.update({'records_number': str(iterator_records)})
-            for i in range(len(poles)):
-                if poles[i] in tags.keys():  # chek all poles in dictionary
-                    pass
-                else:
-                    tags.update({poles[i]: ' '})
 
-            allrecord.append(tags)  # add all dictionary in List-object. This List using for found input call in base of QSO (repeat qso)
+            if tags:
+
+                tags.update({'string_in_file': str(iterator_string_file)})
+                tags.update({'records_number': str(iterator_records)})
+                for i in range(len(poles)):
+                    if poles[i] in tags.keys():  # chek all poles in dictionary
+                        pass
+                    else:
+                        tags.update({poles[i]: ' '})
+
+                allrecord.append(tags)  # add all dictionary in List-object. This List using for found input call in base of QSO (repeat qso)
 
         # print ('%10s %5s %10s %16s %4s %6s %5s %15s %15s' % (tags.get('QSO_DATE'), tags.get('TIME_ON'),tags.get('FREQ'),tags.get('CALL'),tags.get('MODE'), tags.get('RST_RCVD'),tags.get('RST_SENT'),tags.get('NAME'),tags.get('QTH')))
 
         if string == "<EOH>\n":  # if we went to end by text header in ADI file (<EOH>) - set key by ready parsing in value = 1
             key = 1
-    # print (allrecord)
-    print(allrecord)
+    print (allrecord)
+    #print(allrecord)
     return allrecord
 # call=''
 # rangevalue=len(allrecord) # How many QSO in base

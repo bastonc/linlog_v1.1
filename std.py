@@ -1,4 +1,4 @@
-
+from PyQt5.QtWidgets import QMessageBox
 
 class std:
     def get_std_band(self, freq):  # get Band in m
@@ -44,3 +44,12 @@ class std:
                 freq += "0"
                 len_freq = len(freq)
         return freq
+
+    def message(self, detail_text, text_short):
+        message = QMessageBox(self)
+        message.setGeometry(500, 300, 1000, 500)
+        message.setWindowTitle("Information")
+        message.setText(text_short)
+        message.setInformativeText(detail_text)
+        message.setStandardButtons(QMessageBox.Ok)
+        message.exec_()

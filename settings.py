@@ -1,19 +1,17 @@
 import telnetlib
 import time
 import main
-import tci
-
+import parse
+import shutil
+import std
 from PyQt5.QtWidgets import QApplication, QAction, QWidget, QMainWindow, QTableView, QTableWidget, QTableWidgetItem, \
     QTextEdit, \
     QLineEdit, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QComboBox, QFrame, QSizePolicy
 from PyQt5 import QtCore
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QAction, QWidget, QMainWindow, QTableView, QTableWidget, QTableWidgetItem, QTextEdit, \
-    QLineEdit, QPushButton, QLabel, QColorDialog, QVBoxLayout, QHBoxLayout, QComboBox, QListView, QCheckBox
-from PyQt5.QtCore import pyqtSignal, QObject, QEvent
+from PyQt5.QtWidgets import  QWidget, QMessageBox, QLineEdit, QPushButton, QLabel, QColorDialog, QVBoxLayout, QHBoxLayout, QComboBox, QCheckBox, QFileDialog
 from PyQt5.QtGui import QIcon, QFocusEvent, QPixmap, QTextTableCell, QStandardItemModel, QPalette, QColor
-from PyQt5 import QtGui, QtCore
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtCore import QThread
 from time import gmtime, strftime, localtime
 
@@ -32,15 +30,16 @@ class Menu (QWidget):
         self.internetSearch = internetSearch
         self.tci_class = tci_class
         #print ("Menu init tci class:", self.tci_class.currentThreadId())
-
+        #self.initUI()
 
     def initUI(self):
-        print ("Menu() initUi")
+
         self.setGeometry(300,
                          300,
                          300,
                          300)
         self.setWindowTitle('LinLog | Settings')
+
         self.setWindowIcon(QIcon('logo.png'))
         style = "QWidget{background-color:" + self.settingsDict['background-color'] + "; color:" + self.settingsDict['color'] + ";}"
         self.setStyleSheet(style)
@@ -49,10 +48,12 @@ class Menu (QWidget):
         self.general_tab = QWidget()
         self.cluster_tab = QWidget()
         self.tci_tab = QWidget()
+        self.io_tab = QWidget()
     #
         self.tab.addTab(self.general_tab, "General")
         self.tab.addTab(self.cluster_tab, "Cluster")
         self.tab.addTab(self.tci_tab, "TCI")
+        self.tab.addTab(self.io_tab, "Log file")
     # create General Tab
         formstyle = "background :"+self.settingsDict['form-background']
         self.general_tab.layout = QVBoxLayout(self) # create vertical lay
@@ -293,7 +294,19 @@ class Menu (QWidget):
         self.tci_tab.layout.addSpacing(250)
         self.tci_tab.setLayout(self.tci_tab.layout)
 
-
+    # Create io_tab
+        self.io_tab_lay = QVBoxLayout()
+        self.io_tab_lay.setAlignment(Qt.AlignCenter)
+        self.import_button = QPushButton("Import")
+        self.import_button.setFixedSize(100, 30)
+        self.import_button.clicked.connect(self.import_adi)
+        self.import_button.setStyleSheet("width: 100px;")
+        self.export_button = QPushButton("Export")
+        self.export_button.clicked.connect(self.export_adi)
+        self.export_button.setFixedSize(100, 30)
+        self.io_tab_lay.addWidget(self.import_button)
+        self.io_tab_lay.addWidget(self.export_button)
+        self.io_tab.setLayout(self.io_tab_lay)
 
 
     # button panel
@@ -324,7 +337,8 @@ class Menu (QWidget):
         
 
         #self.setLayout(self.mainLayout)
-        self.show()
+        #self.show()
+        print("Menu() initUi")
 
     def initData (self):
         #init data in general tab
@@ -352,6 +366,49 @@ class Menu (QWidget):
         self.tci_host_input.setText(host)
         self.tci_port_input.setText(self.settingsDict['tci-port'])
 
+    def closeEvent(self, e):
+        print("Close menu", e)
+        Menu.close(self)
+
+    def import_adi(self):
+        fileimport = QFileDialog()
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        #fileimport.setNameFilter("Adi file(*.adi)")
+        #fileimport.setFilter()
+        fname = fileimport.getOpenFileName(self, 'Import adi file', '/home', "*.adi", options=options)[0]
+        if fname:
+            print(fname)
+            self.allCollumn = ['records_number', 'QSO_DATE', 'TIME_ON', 'BAND', 'CALL', 'FREQ', 'MODE', 'RST_RCVD', 'RST_SENT',
+                               'NAME', 'QTH', 'COMMENTS', 'TIME_OFF', 'eQSL_QSL_RCVD', 'OPERATOR']
+            try:
+                allRecords = parse.getAllRecord(self.allCollumn, fname)
+                main.Adi_file.record_dict_qso(self, allRecords)
+                print(allRecords)
+                self.logWindow.refresh_data()
+                std.std.message(self, "Import complete!", "Ok")
+            except Exception:
+                print ("Exception to import")
+                std.std.message(self, "Can't import\nCheck encoding file", "STOP!")
+
+
+
+
+    def export_adi(self):
+        print("export_adi")
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self, "Export adi", "",
+                                                  "Adi (*.adi)", options=options)
+        if file_name:
+            print(file_name)
+            copy_file = shutil.copyfile('log.adi', file_name+'.adi')
+
+            if copy_file!='':
+                print("Export complete")
+                std.std.message(self, "Export to\n"+copy_file+"\n completed", "Export complited")
+            else:
+                std.std.message(self, "Can't export to file", "Sorry")
     def start_calibrate_cluster(self):
         self.telnetCluster.stop_cluster()
         self.cluster = cluster_in_Thread (self.cluster_host_input.text().strip(),
