@@ -33,7 +33,7 @@ from time import gmtime, strftime, localtime
 APP_VERSION = '1.01'
 settingsDict = {}
 
-file = open('./settings.cfg', "r")
+file = open('settings.cfg', "r")
 for configstring in file:
     if configstring != '' and configstring != ' ' and configstring[0] != '#':
         configstring = configstring.strip()
@@ -851,7 +851,7 @@ class logForm(QMainWindow):
         self.run_time.start()
 
     def rememberBand(self, text):
-        with open('./settings.cfg', 'r') as file:
+        with open('settings.cfg', 'r') as file:
             # read a list of lines into data
             data = file.readlines()
         for i in range(len(data)):
@@ -865,12 +865,12 @@ class logForm(QMainWindow):
                 if string[0] == 'band':
                     string[1] = self.comboBand.currentText().strip()
                 data[i] = string[0] + '=' + string[1] + '\n'
-                with open('./settings.cfg', 'w') as file:
+                with open('settings.cfg', 'w') as file:
                     file.writelines(data)
 
     def rememberMode(self, text):
         # print(self.comboMode.currentText())
-        with open('./settings.cfg', 'r') as file:
+        with open('settings.cfg', 'r') as file:
             # read a list of lines into data
             data = file.readlines()
         for i in range(len(data)):
@@ -884,7 +884,7 @@ class logForm(QMainWindow):
                 if string[0] == 'mode':
                     string[1] = self.comboMode.currentText().strip()
                 data[i] = string[0] + '=' + string[1] + '\n'
-                with open('./settings.cfg', 'w') as file:
+                with open('settings.cfg', 'w') as file:
                     file.writelines(data)
 
     def onChanged(self, text):
@@ -928,7 +928,7 @@ class logForm(QMainWindow):
             #print("record_number:", record_number)
             datenow = datetime.datetime.now()
             date = datenow.strftime("%Y%m%d")
-            time = str(datenow.strftime("%H%M%S"))
+            time = str(strftime("%H%M%S", gmtime()))
 
 
             recordObject = {'records_number': str(record_number), 'QSO_DATE': date, 'TIME_ON': time, 'FREQ': freq, 'CALL': call, 'MODE': mode,
@@ -937,6 +937,9 @@ class logForm(QMainWindow):
                             'eQSL_QSL_RCVD': eQSL_QSL_RCVD}
 
             logWindow.addRecord(recordObject)
+            if settingsDict['eqsl'] == 'enable':
+                sync_eqsl = internetworker.Eqsl_services(settingsDict=settingsDict, recordObject=recordObject,std=std.std, parent_window=self)
+                sync_eqsl.start()
             try:
                 tci.Tci_sender(settingsDict['tci-server'] + ":" + settingsDict['tci-port']).change_color_spot(call, freq)
             except:
@@ -1030,7 +1033,7 @@ class logForm(QMainWindow):
         :return:
         '''
         print(parameter)
-        filename='./settings.cfg'
+        filename='settings.cfg'
         with open(filename,'r') as f:
             old_data = f.readlines()
         for line, string in enumerate(old_data):
@@ -1558,7 +1561,7 @@ class settings_file:
 
     def save_all_settings():
         print ("save_all_settings")
-        filename = './settings.cfg'
+        filename = 'settings.cfg'
         with open(filename, 'r') as f:
             old_data = f.readlines()
         for index, line in enumerate(old_data):
@@ -1616,13 +1619,8 @@ if __name__ == '__main__':
                              logWindow,
                              internetSearch,
                              tci_recv)
-        #menu = settings.Menu(settingsDict,
-         #                    telnetCluster,
-         #                    logForm,
-          #                   logSearch,
-          #                   logWindow,
-         #                    internetSearch,
-         #                    tci_recv)
+
+
 
     #Adi_file().record_all_qso(list)
     sys.exit(app.exec_())

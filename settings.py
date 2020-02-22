@@ -49,11 +49,13 @@ class Menu (QWidget):
         self.cluster_tab = QWidget()
         self.tci_tab = QWidget()
         self.io_tab = QWidget()
+        self.service_widget = QWidget()
     #
         self.tab.addTab(self.general_tab, "General")
         self.tab.addTab(self.cluster_tab, "Cluster")
         self.tab.addTab(self.tci_tab, "TCI")
         self.tab.addTab(self.io_tab, "Log file")
+        self.tab.addTab(self.service_widget, "Services")
     # create General Tab
         formstyle = "background :"+self.settingsDict['form-background']
         self.general_tab.layout = QVBoxLayout(self) # create vertical lay
@@ -308,6 +310,45 @@ class Menu (QWidget):
         self.io_tab_lay.addWidget(self.export_button)
         self.io_tab.setLayout(self.io_tab_lay)
 
+    # Create Services tab
+
+        self.service_tab = QVBoxLayout()
+        self.service_tab.setAlignment(Qt.AlignCenter)
+
+        # create elements form
+        self.eqsl_lay = QVBoxLayout()
+        self.eqsl_lay.setAlignment(Qt.AlignCenter)
+        self.eqsl_activate = QHBoxLayout()
+        self.eqsl_chekBox = QCheckBox("eQSL")
+        self.eqsl_chekBox.setStyleSheet("{ color:" + self.settingsDict['color'] + "; font-size: 12px; border-color: white }")
+        self.eqsl_activate.addWidget(self.eqsl_chekBox)
+        #self.eqsl_activate.addWidget(QLabel("eQSL.cc"))
+        self.eqsl_lay.addLayout(self.eqsl_activate)
+        self.text_eqsl_small = QLabel("Automatic send eQSL after enter QSO")
+        self.text_eqsl_small.setStyleSheet("font: 10px; font-style: italic;")
+        self.eqsl_lay.addWidget(self.text_eqsl_small)
+        self.eqsl_form = QVBoxLayout()
+        self.login = QHBoxLayout()
+
+        self.login.addWidget(QLabel("Login:"))
+        self.eqsl_login = QLineEdit()
+        self.eqsl_login.setFixedWidth(200)
+        self.eqsl_login.setStyleSheet(formstyle)
+        self.login.addWidget(self.eqsl_login)
+        self.login.addSpacing(50)
+        self.password = QHBoxLayout()
+        self.password.addWidget(QLabel("Password:"))
+        self.eqsl_password = QLineEdit()
+        self.eqsl_password.setFixedWidth(200)
+        self.eqsl_password.setStyleSheet(formstyle)
+        self.password.addWidget(self.eqsl_password)
+        self.password.addSpacing(50)
+        self.eqsl_form.addLayout(self.login)
+        self.eqsl_form.addLayout(self.password)
+        self.eqsl_lay.addLayout(self.eqsl_form)
+        self.service_tab.addLayout(self.eqsl_lay)
+        self.service_widget.setLayout(self.service_tab)
+
 
     # button panel
         self.button_panel = QHBoxLayout()
@@ -365,10 +406,15 @@ class Menu (QWidget):
         host = self.settingsDict['tci-server'].replace("ws://", '')
         self.tci_host_input.setText(host)
         self.tci_port_input.setText(self.settingsDict['tci-port'])
+        self.eqsl_login.setText(self.settingsDict['eqsl_user'])
+        self.eqsl_password.setText(self.settingsDict['eqsl_password'])
+        if self.settingsDict['eqsl'] == 'enable':
+            self.eqsl_chekBox.setChecked(True)
+
 
     def closeEvent(self, e):
         print("Close menu", e)
-        Menu.close(self)
+        self.close()
 
     def import_adi(self):
         fileimport = QFileDialog()
@@ -391,9 +437,6 @@ class Menu (QWidget):
                 print ("Exception to import")
                 std.std.message(self, "Can't import\nCheck encoding file", "STOP!")
 
-
-
-
     def export_adi(self):
         print("export_adi")
         options = QFileDialog.Options()
@@ -409,6 +452,7 @@ class Menu (QWidget):
                 std.std.message(self, "Export to\n"+copy_file+"\n completed", "Export complited")
             else:
                 std.std.message(self, "Can't export to file", "Sorry")
+
     def start_calibrate_cluster(self):
         self.telnetCluster.stop_cluster()
         self.cluster = cluster_in_Thread (self.cluster_host_input.text().strip(),
@@ -449,8 +493,6 @@ class Menu (QWidget):
             self.back_color_input.setStyleSheet("background:"+color.name()+";")
             self.back_color_input.autoFillBackground()
 
-
-
     def update_color_schemes(self):
         style = "QWidget{background-color:" + self.settingsDict['background-color'] + "; color:" + \
                 self.settingsDict['color'] + ";}"
@@ -460,7 +502,7 @@ class Menu (QWidget):
         self.setStyleSheet(style)
 
     def store_new_settingsDict(self):
-        call = main.settingsDict['my-call']
+        call = self.settingsDict['my-call']
         self.settingsDict['my-call'] = self.call_input.text()
         self.settingsDict['background-color'] = self.back_color_input.text()
         self.settingsDict['color'] = self.text_color_input.text()
@@ -476,33 +518,38 @@ class Menu (QWidget):
             self.settingsDict['telnet-freq-position'] = self.cluster_combo_freq.currentText().split(":")[0]
         self.settingsDict['tci-server'] = "ws://"+self.tci_host_input.text().strip()
         self.settingsDict['tci-port'] = self.tci_port_input.text().strip()
-
+        self.settingsDict['eqsl_user'] = self.eqsl_login.text()
+        self.settingsDict['eqsl_password'] = self.eqsl_password.text()
+        if self.eqsl_chekBox.isChecked():
+            self.settingsDict['eqsl'] = 'enable'
+        else:
+            self.settingsDict['eqsl'] = 'disable'
         cluster_change_flag = 0
         if self.cluster_filter_band_combo.isChecked():
-            if main.settingsDict['filter_by_band'] != "enable":
-                main.settingsDict['filter_by_band'] = "enable"
+            if self.settingsDict['filter_by_band'] != "enable":
+                self.settingsDict['filter_by_band'] = "enable"
                 cluster_change_flag = 1
         else:
-            if main.settingsDict['filter_by_band'] != "disable":
-                main.settingsDict['filter_by_band'] = "disable"
+            if self.settingsDict['filter_by_band'] != "disable":
+                self.settingsDict['filter_by_band'] = "disable"
                 cluster_change_flag = 1
 
         if self.cluster_filter_spot_combo.isChecked():
-            if main.settingsDict['filter-by-prefix'] != "enable":
-                main.settingsDict['filter-by-prefix'] = "enable"
+            if self.settingsDict['filter-by-prefix'] != "enable":
+                self.settingsDict['filter-by-prefix'] = "enable"
                 cluster_change_flag = 1
         else:
-            if main.settingsDict['filter-by-prefix'] != "disable":
-                main.settingsDict['filter-by-prefix'] = "disable"
+            if self.settingsDict['filter-by-prefix'] != "disable":
+                self.settingsDict['filter-by-prefix'] = "disable"
                 cluster_change_flag = 1
 
         if self.cluster_filter_spotter_combo.isChecked():
-            if main.settingsDict['filter-by-prefix-spotter'] != "enable":
-                main.settingsDict['filter-by-prefix-spotter'] = "enable"
+            if self.settingsDict['filter-by-prefix-spotter'] != "enable":
+                self.settingsDict['filter-by-prefix-spotter'] = "enable"
                 cluster_change_flag = 1
         else:
-            if main.settingsDict['filter-by-prefix-spotter'] != "disable":
-                main.settingsDict['filter-by-prefix-spotter'] = "disable"
+            if self.settingsDict['filter-by-prefix-spotter'] != "disable":
+                self.settingsDict['filter-by-prefix-spotter'] = "disable"
                 cluster_change_flag = 1
 
 
@@ -551,7 +598,7 @@ class Menu (QWidget):
         Menu.close(self)
 
     def cancel_button(self):
-        Menu.close(self)
+        self.close()
 
 class cluster_in_Thread(QThread):
     def __init__(self, host, port, call, parent_window, parent=None):
