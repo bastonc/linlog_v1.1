@@ -98,15 +98,16 @@ class Eqsl_services (QThread):
         else:
             soup = BeautifulSoup(request_eqsl.text, 'html.parser')
             response = soup.body.contents[0]
-            print ("SOUP", soup.body.contents[0])
+            print ("SOUP", soup.body.contents[0].strip())
             if (response.find('Warning')!= -1) or (response.find('Error')!= -1):
-                message = QMessageBox()
+                message = QMessageBox(self.parrent_window)
                 #message.setFixedHeight(200)
                 #message.setGeometry(500, 300, 1000, 500)
                 message.setStyleSheet("font: 12px;")
                 message.setWindowTitle("Warning!")
                 message.setText("Can't send to eQSL.cc")
-                message.setInformativeText(soup.body.contents[0])
+                #message.setText(soup.body.contents[0].strip())
+                message.setInformativeText(soup.body.contents[0].strip())
                 message.setStandardButtons(QMessageBox.Ok)
                 message.exec_()
             #print(request_eqsl.text)
