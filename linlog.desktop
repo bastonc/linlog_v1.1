@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=LinLog
-Comment=Do it
-Exec=/home/bastonc/Документы/pyqt5/minilogrun.sh
-Icon=/home/bastonc/Документы/pyqt5/icon.svg
-Terminal=false
-Type=Application
-Categories=AmateurRadio;
