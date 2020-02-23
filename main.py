@@ -1545,8 +1545,8 @@ class hello_window(QWidget):
             settingsDict['my-call'] = self.call_input.text().strip().upper()
             settings_file.save_all_settings()
             hello_window.close()
-            #subprocess.call(["python3", "main.py"])
-            subprocess.call("./main")
+            subprocess.call(["python3", "main.py"])
+            #subprocess.call("./main")
             #app.exit()
 
 
