@@ -30,7 +30,7 @@ from time import gmtime, strftime, localtime
 # from tel import telnet_cluster
 
 
-APP_VERSION = '1.01'
+APP_VERSION = '1.1'
 settingsDict = {}
 
 file = open('settings.cfg', "r")
