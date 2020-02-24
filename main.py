@@ -222,6 +222,7 @@ class Filter(QObject):
                 if logForm.inputCall.text() == '':
                     logForm.inputRstS.setText('59')
                     logForm.inputRstR.setText('59')
+
                     # return False so that the widget will also handle the event
                     # otherwise it won't focus out
                 return False
@@ -511,25 +512,28 @@ class logSearch(QWidget):
         self.show()
 
     def overlap(self, foundList):
-        allRows = len(foundList)
-        # print(foundList)
-        self.tableWidget.setRowCount(allRows)
-        self.tableWidget.setColumnCount(10)
-        self.tableWidget.setHorizontalHeaderLabels(["No", "   Date   ", " Time ", "Band", "   Call   ", "Mode", "RST r",
-                                                    "RST s", "      Name      ", "      QTH      "])
-        self.tableWidget.resizeColumnsToContents()
-        allCols = len(logWindow.allCollumn)
-        # print(foundList[0]["CALL"])
-        for row in range(allRows):
-            for col in range(allCols):
-                pole = logWindow.allCollumn[col]
-                # print(foundList[row][pole])
-                self.tableWidget.setItem(row, col, QTableWidgetItem(foundList[row][pole]))
+        if foundList != "":
+            allRows = len(foundList)
+            # print(foundList)
+            self.tableWidget.setRowCount(allRows)
+            self.tableWidget.setColumnCount(10)
+            self.tableWidget.setHorizontalHeaderLabels(["No", "   Date   ", " Time ", "Band", "   Call   ", "Mode", "RST r",
+                                                        "RST s", "      Name      ", "      QTH      "])
+            self.tableWidget.resizeColumnsToContents()
+            allCols = len(logWindow.allCollumn)
+            # print(foundList[0]["CALL"])
+            for row in range(allRows):
+                for col in range(allCols):
+                    pole = logWindow.allCollumn[col]
+                    # print(foundList[row][pole])
+                    self.tableWidget.setItem(row, col, QTableWidgetItem(foundList[row][pole]))
 
-        self.tableWidget.resizeRowsToContents()
-        self.tableWidget.resizeColumnsToContents()
-        self.foundList = foundList
-        # print(self.foundList)
+            self.tableWidget.resizeRowsToContents()
+            self.tableWidget.resizeColumnsToContents()
+            self.foundList = foundList
+        else:
+            self.tableWidget.clearContents()
+          # print(self.foundList)
 
     def refresh_interface(self):
 
@@ -594,7 +598,8 @@ class logForm(QMainWindow):
         WindowMenu.addAction(window_inet_search_action)
         WindowMenu.addAction(window_repeat_qso_action)
 
-
+        #AboutAction = QAction('About', self)
+        #AboutAction.triggered.connect(self.about)
 
         #
         '''
@@ -953,6 +958,8 @@ class logForm(QMainWindow):
             self.inputName.clear()
             self.inputQth.clear()
             self.comments.clear()
+            logSearch.tableWidget.clearContents()
+            internetSearch.update_photo()
 
     def changeEvent(self, event):
 
@@ -1199,14 +1206,9 @@ class logForm(QMainWindow):
 
         self.setStyleSheet(style)
 
-
-
-
-
     def update_settings(self, new_settingsDict):
         settingsDict.update(new_settingsDict)
         #print(settingsDict['my-call'])
-
 
 
     def test(data):
@@ -1381,6 +1383,8 @@ class telnetCluster(QWidget):
         '''
         logForm.set_freq(freq)
         logForm.set_call(call=call)
+        logForm.activateWindow()
+
         if settingsDict['tci'] == 'enable':
             try:
                 tci.Tci_sender(settingsDict['tci-server'] + ":" + settingsDict['tci-port']).set_freq(freq)
@@ -1482,9 +1486,12 @@ class internetSearch(QWidget):
             'color'] + ";}"
         self.setStyleSheet(style)
         self.show()
-
+    #def reset_search(self):
+     #   pixmap = QPixmap("logo.png")
+    #    self.labelImage.setPixmap(pixmap)
     def update_photo(self):
         pixmap = QPixmap("logo.png")
+        #self.labelImage.setFixedWidth(self.settings['image-width'])
         self.labelImage.setPixmap(pixmap)
 
     def refresh_interface(self):
