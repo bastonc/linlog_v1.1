@@ -509,7 +509,7 @@ class logSearch(QWidget):
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.tableWidget)
         self.setLayout(self.layout)
-        self.show()
+        #self.show()
 
     def overlap(self, foundList):
         if foundList != "":
@@ -849,7 +849,7 @@ class logForm(QMainWindow):
         central_widget.setLayout(vBoxMain)
         self.setCentralWidget(central_widget)
 
-        self.show()
+       # self.show()
 
         # run time in Thread
         self.run_time = realTime(logformwindow=self) #run time in Thread
@@ -958,9 +958,11 @@ class logForm(QMainWindow):
             self.inputName.clear()
             self.inputQth.clear()
             self.comments.clear()
-            logSearch.tableWidget.clearContents()
-            internetSearch.update_photo()
-
+            try:
+                logSearch.tableWidget.clearContents()
+                internetSearch.update_photo()
+            except Exception:
+                pass
     def changeEvent(self, event):
 
         if event.type() == QtCore.QEvent.WindowStateChange:
@@ -1485,7 +1487,7 @@ class internetSearch(QWidget):
         style = "QWidget{background-color:" + settingsDict['background-color'] + "; color:" + settingsDict[
             'color'] + ";}"
         self.setStyleSheet(style)
-        self.show()
+        #self.show()
     #def reset_search(self):
      #   pixmap = QPixmap("logo.png")
     #    self.labelImage.setPixmap(pixmap)
@@ -1593,25 +1595,26 @@ if __name__ == '__main__':
         hello_window = hello_window()
         print(hello_window)
     else:
-
-
-
-
+        logWindow = logWindow()
+        logSearch = logSearch()
+        internetSearch = internetSearch()
+        logForm = logForm()
+        tci_recv = tci.tci_connect(settingsDict, log_form=logForm)
 
         if settingsDict['log-window'] == 'true':
-            logWindow = logWindow()
+            logWindow.show()
             # Log_window() logWindow()
         if settingsDict['log-search-window'] == 'true':
-            logSearch = logSearch()
+            logSearch.show()
 
         if settingsDict['search-internet-window'] == 'true':
-            internetSearch = internetSearch()
+            internetSearch.show()
 
         if settingsDict['log-form-window'] == 'true':
-            logForm = logForm()
+            logForm.show()
             # logForm.setFocus()
         if settingsDict['tci'] == 'enable':
-            tci_recv = tci.tci_connect(settingsDict, log_form=logForm)
+
             tci_recv.start_tci(settingsDict["tci-server"], settingsDict["tci-port"])
             # tci_recv.stop_tci()
             # tci_reciever = tci.Tci_reciever(settingsDict['tci-server']+":"+settingsDict['tci-port'], log_form=logForm)
