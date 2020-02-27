@@ -33,7 +33,7 @@ else
     then
         sudo apt install git # if git not installed - install it
     fi
-    if [[ "$dist_name" == "Fedora" || "$dist_name" == "Rad-hat" || "$dist_name" == "CentOS" ]]
+    if [[ "$dist_name" == "Fedora" || "$dist_name" == "Rad-hat" || "$dist_name" == "CentOS Linux" ]]
     then
         sudo dnf install git # if git not installed - install it
     fi
@@ -61,7 +61,7 @@ echo -en '\n\n=======- Install all dependisesn -===========\n\n'
 sudo apt install python3-pip && sudo apt install python3-pyqt5 && sudo pip3 install datetime && sudo pip3 install urllib3 && sudo pip3 install websocket-client2 && sudo pip3 install bs4 && sudo pip3 install telnetlib3
 echo -en "\n\n=====- Dependenses insatalled -=======\n\n"
 fi
-if [[ "$dist_name" == "Fedora" || "$dist_name" == "Rad-hat" || "$dist_name" == "CentOS" ]]
+if [[ "$dist_name" == "Fedora" || "$dist_name" == "Rad-hat" || "$dist_name" == "CentOS Linux" ]]
 then
 # && sudo dnf install python3-qt5
 #http://rpmfind.net/linux/fedora/linux/updates/31/Everything/x86_64/Packages/p/python3-#qt5-5.13.2-3.fc31.i686.rpm
